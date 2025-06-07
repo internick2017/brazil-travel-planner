@@ -38,3 +38,6 @@ logs
 # API Keys (if stored in files)
 config/api-keys.js
 secrets/
+assets/js/modules/config.js
+**/config-production.js
+*.api-key

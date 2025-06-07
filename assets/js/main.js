@@ -2,6 +2,7 @@
 
 class BrazilTravelApp {
     constructor() {
+        // Initialize APIs
         this.weatherAPI = null;
         this.countriesAPI = null;
         this.brazilAPI = null;
@@ -12,22 +13,50 @@ class BrazilTravelApp {
     async init() {
         console.log('🇧🇷 Brazil Travel Planner - Initializing...');
         
+        // Initialize APIs
+        this.initializeAPIs();
+        
         // Initialize event listeners
         this.initEventListeners();
         
         // Load page-specific content
         if (window.location.pathname.includes('destinations.html')) {
             this.loadDestinations();
-            this.initDestinationHandlers();
-        } else {
+            this.initDestinationHandlers();        } else {
             // Load initial weather data for home page
             await this.loadInitialWeatherData();
+            // Load Brazilian holidays
+            await this.loadBrazilianHolidays();
         }
         
         // Initialize search functionality
         this.initSearch();
         
         console.log('✅ Brazil Travel Planner - Ready!');
+    }    initializeAPIs() {
+        // Initialize Weather API if config is available
+        if (window.WeatherAPI && window.API_CONFIG) {
+            this.weatherAPI = new WeatherAPI();
+            console.log('🌤️ Weather API initialized');
+        } else {
+            console.warn('⚠️ Weather API not available. Make sure config.js and weather.js are loaded.');
+        }
+        
+        // Initialize Brazil API
+        if (window.BrazilAPI) {
+            this.brazilAPI = new BrazilAPI();
+            console.log('🇧🇷 Brazil API initialized');
+        } else {
+            console.warn('⚠️ Brazil API not available. Make sure brazil.js is loaded.');
+        }
+        
+        // Initialize Countries API
+        if (window.CountriesAPI) {
+            this.countriesAPI = new CountriesAPI();
+            console.log('🌎 Countries API initialized');
+        } else {
+            console.warn('⚠️ Countries API not available. Make sure countries.js is loaded.');
+        }
     }
 
     initEventListeners() {
@@ -65,51 +94,128 @@ class BrazilTravelApp {
                 e.currentTarget.classList.add('active');
             });
         });
-    }
-
-    async loadInitialWeatherData() {
+    }    async loadInitialWeatherData() {
         const weatherPreview = document.getElementById('weatherPreview');
         
         if (!weatherPreview) return;
 
         try {
-            // Simulate API call for now
-            setTimeout(() => {
+            if (this.weatherAPI && this.weatherAPI.apiKey && this.weatherAPI.apiKey !== 'YOUR_VISUAL_CROSSING_API_KEY_HERE') {
+                // Use real weather API
                 weatherPreview.innerHTML = `
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <div class="d-flex align-items-center">
-                                <i class="fas fa-sun fa-2x text-warning me-3 weather-icon"></i>
-                                <div>
-                                    <h6 class="mb-1">Rio de Janeiro</h6>
-                                    <p class="mb-0">28°C - Sunny</p>
+                    <div class="text-center">
+                        <div class="spinner-border spinner-border-sm text-warning" role="status">
+                            <span class="visually-hidden">Loading weather...</span>
+                        </div>
+                        <p class="mt-2 mb-0 text-white-50">Loading current weather for Brazilian cities...</p>
+                    </div>
+                `;
+
+                const cities = ['Rio de Janeiro,Brazil', 'São Paulo,Brazil'];
+                const weatherData = await this.weatherAPI.getMultipleCitiesWeather(cities);
+                
+                let weatherHTML = '<div class="row">';
+                
+                for (const [city, result] of Object.entries(weatherData)) {
+                    if (result.success) {
+                        const formatted = this.weatherAPI.formatWeatherDisplay(result.data);
+                        const cityName = city.split(',')[0];
+                        const iconClass = this.getWeatherIcon(formatted.condition);
+                        
+                        weatherHTML += `
+                            <div class="col-md-6 mb-3">
+                                <div class="d-flex align-items-center">
+                                    <i class="${iconClass} fa-2x text-warning me-3 weather-icon"></i>
+                                    <div>
+                                        <h6 class="mb-1">${cityName}</h6>
+                                        <p class="mb-0">${formatted.temperature}°C - ${formatted.condition}</p>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <div class="d-flex align-items-center">
-                                <i class="fas fa-cloud-rain fa-2x text-info me-3 weather-icon"></i>
-                                <div>
-                                    <h6 class="mb-1">São Paulo</h6>
-                                    <p class="mb-0">22°C - Rainy</p>
+                        `;
+                    } else {
+                        const cityName = city.split(',')[0];
+                        weatherHTML += `
+                            <div class="col-md-6 mb-3">
+                                <div class="d-flex align-items-center">
+                                    <i class="fas fa-exclamation-triangle fa-2x text-warning me-3"></i>
+                                    <div>
+                                        <h6 class="mb-1">${cityName}</h6>
+                                        <p class="mb-0">Weather unavailable</p>
+                                    </div>
                                 </div>
+                            </div>
+                        `;
+                    }
+                }
+                
+                weatherHTML += '</div>';
+                weatherHTML += `
+                    <small class="text-white-50">
+                        <i class="fas fa-clock me-1"></i>
+                        Updated: ${new Date().toLocaleTimeString()} (Live API)
+                    </small>
+                `;
+                weatherPreview.innerHTML = weatherHTML;
+                
+                console.log('✅ Live weather data loaded successfully');
+                
+            } else {
+                // Fallback to static data
+                console.log('⚠️ Using static weather data - API not configured');
+                this.loadStaticWeatherData(weatherPreview);
+            }
+        } catch (error) {
+            console.error('Weather API error:', error);
+            this.loadStaticWeatherData(weatherPreview);
+        }
+    }
+
+    loadStaticWeatherData(weatherPreview) {
+        // Fallback static weather data
+        setTimeout(() => {
+            weatherPreview.innerHTML = `
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-sun fa-2x text-warning me-3 weather-icon"></i>
+                            <div>
+                                <h6 class="mb-1">Rio de Janeiro</h6>
+                                <p class="mb-0">28°C - Sunny</p>
                             </div>
                         </div>
                     </div>
-                    <small class="text-white-50">
-                        <i class="fas fa-clock me-1"></i>
-                        Updated: ${new Date().toLocaleTimeString()}
-                    </small>
-                `;
-            }, 1500);
-        } catch (error) {
-            console.error('Error loading weather data:', error);
-            weatherPreview.innerHTML = `
-                <div class="alert alert-warning" role="alert">
-                    <i class="fas fa-exclamation-triangle me-2"></i>
-                    Weather data temporarily unavailable
+                    <div class="col-md-6 mb-3">
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-cloud-rain fa-2x text-info me-3 weather-icon"></i>
+                            <div>
+                                <h6 class="mb-1">São Paulo</h6>
+                                <p class="mb-0">22°C - Rainy</p>
+                            </div>
+                        </div>
+                    </div>
                 </div>
+                <small class="text-white-50">
+                    <i class="fas fa-clock me-1"></i>
+                    Updated: ${new Date().toLocaleTimeString()} (Demo Data)
+                </small>
             `;
+        }, 1500);
+    }
+
+    getWeatherIcon(condition) {
+        const conditionLower = condition.toLowerCase();
+        
+        if (conditionLower.includes('sun') || conditionLower.includes('clear')) {
+            return 'fas fa-sun';
+        } else if (conditionLower.includes('cloud')) {
+            return 'fas fa-cloud';
+        } else if (conditionLower.includes('rain')) {
+            return 'fas fa-cloud-rain';
+        } else if (conditionLower.includes('storm')) {
+            return 'fas fa-bolt';
+        } else {
+            return 'fas fa-cloud-sun';
         }
     }
 
@@ -603,6 +709,152 @@ class BrazilTravelApp {
         } else {
             return "transition season";
         }
+    }
+
+    async loadBrazilianHolidays() {
+        const holidaysWidget = document.getElementById('holidaysWidget');
+        
+        if (!holidaysWidget) return;
+
+        try {
+            if (this.brazilAPI) {
+                // Use real Brazil API
+                const upcomingHolidays = await this.brazilAPI.getUpcomingHolidays(6);
+                
+                if (upcomingHolidays.length === 0) {
+                    holidaysWidget.innerHTML = `
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>
+                            No upcoming holidays in the next 6 months
+                        </div>
+                    `;
+                    return;
+                }
+
+                let holidaysHTML = '<div class="row">';
+                
+                upcomingHolidays.slice(0, 4).forEach(holiday => {
+                    const formatted = this.brazilAPI.formatHolidayDisplay(holiday);
+                    const holidayDate = new Date(holiday.date);
+                    const month = holidayDate.toLocaleDateString('en-US', { month: 'short' });
+                    const day = holidayDate.getDate();
+                    
+                    holidaysHTML += `
+                        <div class="col-lg-3 col-md-6 mb-3">
+                            <div class="card bg-light text-dark">
+                                <div class="card-body text-center">
+                                    <div class="d-flex align-items-center justify-content-center mb-2">
+                                        <div class="me-3">
+                                            <div class="bg-warning text-dark rounded p-2" style="min-width: 60px;">
+                                                <div class="fw-bold">${month}</div>
+                                                <div class="h4 mb-0">${day}</div>
+                                            </div>
+                                        </div>
+                                        <div class="text-start">
+                                            <h6 class="card-title mb-1">${holiday.name}</h6>
+                                            <small class="text-muted">${formatted.dayOfWeek}</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                holidaysHTML += '</div>';
+                
+                if (upcomingHolidays.length > 4) {
+                    holidaysHTML += `
+                        <div class="text-center mt-3">
+                            <small class="text-white-50">
+                                <i class="fas fa-plus me-1"></i>
+                                ${upcomingHolidays.length - 4} more holidays this year
+                            </small>
+                        </div>
+                    `;
+                }
+                
+                holidaysWidget.innerHTML = holidaysHTML;
+                console.log('✅ Brazilian holidays loaded successfully');
+                
+            } else {
+                // Fallback to static data
+                this.loadStaticHolidaysData(holidaysWidget);
+            }
+        } catch (error) {
+            console.error('Brazil holidays API error:', error);
+            this.loadStaticHolidaysData(holidaysWidget);
+        }
+    }
+
+    loadStaticHolidaysData(holidaysWidget) {
+        // Fallback static holidays data
+        setTimeout(() => {
+            holidaysWidget.innerHTML = `
+                <div class="row">
+                    <div class="col-lg-3 col-md-6 mb-3">
+                        <div class="card bg-light text-dark">
+                            <div class="card-body text-center">
+                                <div class="d-flex align-items-center justify-content-center mb-2">
+                                    <div class="me-3">
+                                        <div class="bg-warning text-dark rounded p-2" style="min-width: 60px;">
+                                            <div class="fw-bold">Sep</div>
+                                            <div class="h4 mb-0">7</div>
+                                        </div>
+                                    </div>
+                                    <div class="text-start">
+                                        <h6 class="card-title mb-1">Independence Day</h6>
+                                        <small class="text-muted">Sunday</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-3 col-md-6 mb-3">
+                        <div class="card bg-light text-dark">
+                            <div class="card-body text-center">
+                                <div class="d-flex align-items-center justify-content-center mb-2">
+                                    <div class="me-3">
+                                        <div class="bg-warning text-dark rounded p-2" style="min-width: 60px;">
+                                            <div class="fw-bold">Oct</div>
+                                            <div class="h4 mb-0">12</div>
+                                        </div>
+                                    </div>
+                                    <div class="text-start">
+                                        <h6 class="card-title mb-1">Our Lady of Aparecida</h6>
+                                        <small class="text-muted">Sunday</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-3 col-md-6 mb-3">
+                        <div class="card bg-light text-dark">
+                            <div class="card-body text-center">
+                                <div class="d-flex align-items-center justify-content-center mb-2">
+                                    <div class="me-3">
+                                        <div class="bg-warning text-dark rounded p-2" style="min-width: 60px;">
+                                            <div class="fw-bold">Dec</div>
+                                            <div class="h4 mb-0">25</div>
+                                        </div>
+                                    </div>
+                                    <div class="text-start">
+                                        <h6 class="card-title mb-1">Christmas</h6>
+                                        <small class="text-muted">Wednesday</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="text-center mt-3">
+                    <small class="text-white-50">
+                        <i class="fas fa-info-circle me-1"></i>
+                        Demo holiday data - API not connected
+                    </small>
+                </div>
+            `;
+        }, 1500);
     }
 }
 

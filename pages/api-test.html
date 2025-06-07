@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Testing - Brazil Travel Planner</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="../assets/css/main.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="container mt-4">
+        <div class="row">
+            <div class="col-12">
+                <h1><i class="fas fa-flask me-2"></i>API Testing Page</h1>
+                <p class="lead">Test your Visual Crossing Weather API integration</p>
+                  <div class="alert alert-success">
+                    <i class="fas fa-check-circle me-2"></i>
+                    <strong>Ready to Test!</strong> Your Visual Crossing Weather API key is configured. Test the weather API with Brazilian cities below.
+                </div>
+            </div>
+        </div>
+        
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0"><i class="fas fa-cloud-sun me-2"></i>Weather API Test</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label for="citySelect" class="form-label">Select Brazilian City:</label>
+                            <select class="form-select" id="citySelect">
+                                <option value="Rio de Janeiro,Brazil">Rio de Janeiro</option>
+                                <option value="São Paulo,Brazil">São Paulo</option>
+                                <option value="Salvador,Brazil">Salvador</option>
+                                <option value="Brasília,Brazil">Brasília</option>
+                                <option value="Manaus,Brazil">Manaus</option>
+                            </select>
+                        </div>
+                        <button id="testWeatherBtn" class="btn btn-primary">
+                            <i class="fas fa-play me-2"></i>Test Weather API
+                        </button>
+                        <button id="testMultipleBtn" class="btn btn-outline-primary ms-2">
+                            <i class="fas fa-layer-group me-2"></i>Test Multiple Cities
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header bg-success text-white">
+                        <h5 class="mb-0"><i class="fas fa-calendar me-2"></i>Brazil API Test</h5>
+                    </div>                    <div class="card-body">
+                        <p>Test Brazilian holidays and regional data (no API key required)</p>
+                        <button id="testHolidaysBtn" class="btn btn-success">
+                            <i class="fas fa-calendar-day me-2"></i>Test Holidays 2024
+                        </button>
+                        <button id="testStatesBtn" class="btn btn-outline-success ms-2">
+                            <i class="fas fa-map me-2"></i>Test States
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Countries API Test -->
+                <div class="card mt-3">
+                    <div class="card-header bg-info text-white">
+                        <h5 class="mb-0"><i class="fas fa-globe me-2"></i>Countries API Test</h5>
+                    </div>
+                    <div class="card-body">
+                        <p>Test REST Countries API for Brazil information (no API key required)</p>
+                        <button id="testCountriesBtn" class="btn btn-info">
+                            <i class="fas fa-flag me-2"></i>Test Brazil Info
+                        </button>
+                        <button id="testNeighborsBtn" class="btn btn-outline-info ms-2">
+                            <i class="fas fa-users me-2"></i>Test Neighbors
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header bg-secondary text-white">
+                        <h5 class="mb-0"><i class="fas fa-terminal me-2"></i>API Test Results</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="testResults" class="bg-dark text-light p-3 rounded" style="height: 400px; overflow-y: auto; font-family: monospace;">
+                            <div class="text-success">🇧🇷 Brazil Travel Planner - API Test Console</div>
+                            <div class="text-muted">Ready to test APIs...</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="../assets/js/modules/config.js"></script>
+    <script src="../assets/js/modules/weather.js"></script>
+    <script src="../assets/js/modules/brazil.js"></script>
+    <script src="../assets/js/modules/countries.js"></script>
+      <script>
+        // Initialize APIs
+        const weatherAPI = new WeatherAPI();
+        const brazilAPI = new BrazilAPI();
+        const countriesAPI = new CountriesAPI();
+        const testResults = document.getElementById('testResults');
+        
+        function logResult(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const colorClass = {
+                'success': 'text-success',
+                'error': 'text-danger',
+                'warning': 'text-warning',
+                'info': 'text-info'
+            }[type] || 'text-light';
+            
+            testResults.innerHTML += `<div class="${colorClass}">[${timestamp}] ${message}</div>`;
+            testResults.scrollTop = testResults.scrollHeight;
+        }
+        
+        function checkApiKey() {
+            if (!API_CONFIG.weather.apiKey || API_CONFIG.weather.apiKey === 'YOUR_VISUAL_CROSSING_API_KEY_HERE') {
+                logResult('⚠️ API key not configured! Please add your Visual Crossing API key to config.js', 'warning');
+                return false;
+            }
+            weatherAPI.setApiKey(API_CONFIG.weather.apiKey);
+            return true;
+        }
+        
+        // Test single city weather
+        document.getElementById('testWeatherBtn').addEventListener('click', async () => {
+            if (!checkApiKey()) return;
+            
+            const city = document.getElementById('citySelect').value;
+            logResult(`🌤️ Testing weather API for ${city}...`, 'info');
+            
+            try {
+                const weather = await weatherAPI.getCurrentWeather(city);
+                const formatted = weatherAPI.formatWeatherDisplay(weather);
+                
+                logResult('✅ Weather API Success!', 'success');
+                logResult(`📍 Location: ${formatted.location}`, 'info');
+                logResult(`🌡️ Temperature: ${formatted.temperature}°C`, 'info');
+                logResult(`☁️ Conditions: ${formatted.condition}`, 'info');
+                logResult(`💨 Wind: ${formatted.windSpeed} km/h`, 'info');
+                logResult(`💧 Humidity: ${formatted.humidity}%`, 'info');
+                
+            } catch (error) {
+                logResult(`❌ Weather API Error: ${error.message}`, 'error');
+            }
+        });
+        
+        // Test multiple cities
+        document.getElementById('testMultipleBtn').addEventListener('click', async () => {
+            if (!checkApiKey()) return;
+            
+            const cities = ['Rio de Janeiro,Brazil', 'São Paulo,Brazil', 'Salvador,Brazil'];
+            logResult('🏙️ Testing multiple cities weather...', 'info');
+            
+            try {
+                const results = await weatherAPI.getMultipleCitiesWeather(cities);
+                
+                for (const [city, result] of Object.entries(results)) {
+                    if (result.success) {
+                        const formatted = weatherAPI.formatWeatherDisplay(result.data);
+                        logResult(`✅ ${city}: ${formatted.temperature}°C, ${formatted.condition}`, 'success');
+                    } else {
+                        logResult(`❌ ${city}: ${result.error}`, 'error');
+                    }
+                }
+                
+            } catch (error) {
+                logResult(`❌ Multiple cities test failed: ${error.message}`, 'error');
+            }
+        });
+        
+        // Test Brazil holidays API
+        document.getElementById('testHolidaysBtn').addEventListener('click', async () => {
+            logResult('🇧🇷 Testing Brazil holidays API...', 'info');
+            
+            try {
+                const response = await fetch('https://brasilapi.com.br/api/feriados/v1/2024');
+                const holidays = await response.json();
+                
+                logResult('✅ Brazil API Success!', 'success');
+                logResult(`📅 Found ${holidays.length} holidays in 2024:`, 'info');
+                
+                holidays.slice(0, 5).forEach(holiday => {
+                    logResult(`🎉 ${holiday.date}: ${holiday.name}`, 'info');
+                });
+                
+                if (holidays.length > 5) {
+                    logResult(`... and ${holidays.length - 5} more holidays`, 'info');
+                }
+                
+            } catch (error) {
+                logResult(`❌ Brazil API Error: ${error.message}`, 'error');
+            }
+        });
+        
+        // Test Brazil states API
+        document.getElementById('testStatesBtn').addEventListener('click', async () => {
+            logResult('🗺️ Testing Brazil states API...', 'info');
+            
+            try {
+                const response = await fetch('https://brasilapi.com.br/api/ibge/uf/v1');
+                const states = await response.json();
+                
+                logResult('✅ Brazil States API Success!', 'success');
+                logResult(`🏛️ Found ${states.length} states:`, 'info');
+                
+                states.slice(0, 8).forEach(state => {
+                    logResult(`📍 ${state.sigla}: ${state.nome}`, 'info');
+                });
+                  } catch (error) {
+                logResult(`❌ Brazil States API Error: ${error.message}`, 'error');
+            }
+        });
+        
+        // Test Brazil country information
+        document.getElementById('testCountriesBtn').addEventListener('click', async () => {
+            logResult('🌎 Testing Brazil country information...', 'info');
+            
+            try {
+                const brazilInfo = await countriesAPI.getBrazilDisplayInfo();
+                
+                logResult('✅ Countries API Success!', 'success');
+                logResult(`🇧🇷 Country: ${brazilInfo.name}`, 'info');
+                logResult(`🏛️ Capital: ${brazilInfo.capital}`, 'info');
+                logResult(`👥 Population: ${countriesAPI.formatPopulation(brazilInfo.population)}`, 'info');
+                logResult(`📐 Area: ${countriesAPI.formatArea(brazilInfo.area)}`, 'info');
+                logResult(`🗣️ Languages: ${brazilInfo.languages.join(', ')}`, 'info');
+                
+                if (brazilInfo.currencies && brazilInfo.currencies.length > 0) {
+                    logResult(`💰 Currency: ${brazilInfo.currencies[0].name} (${brazilInfo.currencies[0].symbol})`, 'info');
+                }
+                
+            } catch (error) {
+                logResult(`❌ Countries API Error: ${error.message}`, 'error');
+            }
+        });
+        
+        // Test neighboring countries
+        document.getElementById('testNeighborsBtn').addEventListener('click', async () => {
+            logResult('🗺️ Testing neighboring countries...', 'info');
+            
+            try {
+                const neighbors = await countriesAPI.getNeighboringCountries();
+                
+                logResult('✅ Neighboring Countries API Success!', 'success');
+                logResult(`🏴 Found ${neighbors.length} neighboring countries:`, 'info');
+                
+                neighbors.slice(0, 5).forEach(country => {
+                    logResult(`${country.flag} ${country.name.common}`, 'info');
+                });
+                
+                if (neighbors.length > 5) {
+                    logResult(`... and ${neighbors.length - 5} more countries`, 'info');
+                }
+                
+            } catch (error) {
+                logResult(`❌ Neighboring Countries API Error: ${error.message}`, 'error');
+            }
+        });
+
+          // Initial setup
+        logResult('🚀 API testing page loaded successfully!', 'success');
+        
+        // Check if API key is configured
+        if (API_CONFIG.weather.apiKey && API_CONFIG.weather.apiKey !== 'YOUR_VISUAL_CROSSING_API_KEY_HERE') {
+            logResult('✅ Visual Crossing API key is configured and ready!', 'success');
+            logResult('🌤️ Click "Test Weather API" to test with Brazilian cities', 'info');
+        } else {
+            logResult('📝 Add your Visual Crossing API key to config.js to test weather API', 'warning');
+        }
+    </script>
+</body>
+</html>
