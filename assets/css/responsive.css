@@ -1,0 +1,147 @@
+/* Responsive Design for Brazil Travel Planner */
+
+/* Mobile First Approach */
+
+/* Small devices (landscape phones, 576px and up) */
+@media (max-width: 575.98px) {
+    .hero-section {
+        padding: 2rem 0;
+        min-height: calc(100vh - 60px);
+    }
+    
+    .hero-section h1 {
+        font-size: 2rem;
+    }
+    
+    .hero-section .lead {
+        font-size: 1rem;
+    }
+    
+    .cta-buttons .btn {
+        width: 100%;
+        margin-bottom: 1rem;
+    }
+    
+    .feature-card {
+        padding: 1.5rem;
+    }
+    
+    .weather-preview-card {
+        padding: 1.5rem;
+        margin-top: 2rem;
+    }
+    
+    /* Add bottom padding to account for bottom navigation */
+    body {
+        padding-bottom: 70px;
+    }
+    
+    /* Destination Cards Responsive */
+    .destination-card .card-body {
+        padding: 1rem;
+    }
+    
+    .destination-card .card-title {
+        font-size: 1.1rem;
+    }
+    
+    .destination-image {
+        height: 150px !important;
+    }
+}
+
+/* Medium devices (tablets, 768px and up) */
+@media (min-width: 576px) and (max-width: 767.98px) {
+    .hero-section h1 {
+        font-size: 2.5rem;
+    }
+    
+    .cta-buttons .btn {
+        margin-bottom: 1rem;
+    }
+    
+    .destination-image {
+        height: 180px !important;
+    }
+    
+    body {
+        padding-bottom: 70px;
+    }
+}
+
+/* Large devices (desktops, 992px and up) */
+@media (min-width: 992px) {
+    .hero-section {
+        padding: 0;
+    }
+    
+    .hero-section h1 {
+        font-size: 3.5rem;
+    }
+    
+    .weather-preview-card {
+        margin-top: 0;
+    }
+    
+    .bottom-nav {
+        display: none !important;
+    }
+    
+    body {
+        padding-bottom: 0;
+    }
+}
+
+/* Extra large devices (large desktops, 1200px and up) */
+@media (min-width: 1200px) {
+    .container {
+        max-width: 1140px;
+    }
+    
+    .hero-section .container {
+        max-width: 1200px;
+    }
+}
+
+/* Print styles */
+@media print {
+    .navbar,
+    .bottom-nav,
+    .btn {
+        display: none !important;
+    }
+    
+    .hero-section {
+        background: white !important;
+        color: black !important;
+    }
+    
+    .hero-section h1,
+    .hero-section .lead {
+        color: black !important;
+    }
+}
+
+/* Accessibility improvements */
+@media (prefers-reduced-motion: reduce) {
+    * {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
+/* High contrast mode */
+@media (prefers-contrast: high) {
+    .feature-card {
+        border: 2px solid var(--text-dark);
+    }
+    
+    .weather-preview-card {
+        border: 2px solid white;
+    }
+    
+    .btn {
+        border-width: 2px;
+    }
+}
