@@ -41,3 +41,17 @@ secrets/
 assets/js/modules/config.js
 **/config-production.js
 *.api-key
+
+# Trello automation files (keep separate from main project)
+trello-*.js
+trello-*.html
+trello-*.md
+.trello.json
+TRELLO_*.md
+setup-trello.js
+package.json
+package-lock.json
+node_modules/
+
+# Trello Power-Up deployment folder (deploy separately)
+trello-powerup-deploy/
