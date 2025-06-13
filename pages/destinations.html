@@ -9,6 +9,58 @@
     <link rel="stylesheet" href="../assets/css/responsive.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href='https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css' rel='stylesheet' />
+    <style>      /* Dynamic Mapbox Popup Styling */
+      .mapboxgl-popup {
+        max-width: none !important;
+        z-index: 1000 !important;
+      }
+      
+      .mapboxgl-popup-content {
+        padding: 0 !important;
+        border-radius: 12px !important;
+        box-shadow: 0 8px 25px rgba(0,0,0,0.15) !important;
+        border: 1px solid #e0e0e0 !important;
+        max-height: 80vh !important;
+        overflow-y: auto !important;
+        width: auto !important;
+        min-width: 280px !important;
+      }
+      
+      .mapboxgl-popup-close-button {
+        background: rgba(0,0,0,0.5) !important;
+        color: white !important;
+        border-radius: 50% !important;
+        width: 24px !important;
+        height: 24px !important;
+        font-size: 16px !important;
+        line-height: 22px !important;
+        text-align: center !important;
+        top: 8px !important;
+        right: 8px !important;
+        z-index: 1001 !important;
+      }
+      
+      .mapboxgl-popup-tip {
+        border-top-color: #e0e0e0 !important;
+      }
+      
+      /* Responsive popup sizing */
+      @media (max-width: 768px) {
+        .mapboxgl-popup-content {
+          max-width: calc(100vw - 40px) !important;
+          min-width: 250px !important;
+          max-height: 70vh !important;
+        }
+      }
+      
+      @media (max-width: 480px) {
+        .mapboxgl-popup-content {
+          max-width: calc(100vw - 20px) !important;
+          min-width: 240px !important;
+          max-height: 60vh !important;
+        }
+      }
+    </style>
 </head>
 <body>
     <!-- Navigation -->
@@ -77,10 +129,65 @@
             <span>Profile</span>
         </a>
     </nav>    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src='https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js'></script>
-    <script src="../assets/js/modules/config.js"></script>
+    <script src='https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js'></script>    <script src="../assets/js/modules/config.js"></script>
     <script src="../assets/js/modules/weather.js"></script>
     <link href='https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css' rel='stylesheet' />
+    
+    <!-- Custom popup styles for responsive design -->
+    <style>
+      .custom-popup .mapboxgl-popup-content {
+        padding: 15px !important;
+        border-radius: 8px !important;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
+        max-width: 320px !important;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+      }
+      
+      .custom-popup .mapboxgl-popup-tip {
+        border-top-color: #ffffff !important;
+        border-bottom-color: #ffffff !important;
+      }
+      
+      /* Mobile responsive adjustments */
+      @media (max-width: 768px) {
+        .custom-popup .mapboxgl-popup-content {
+          max-width: 280px !important;
+          padding: 12px !important;
+          font-size: 13px !important;
+        }
+        
+        .custom-popup h5 {
+          font-size: 14px !important;
+        }
+        
+        .custom-popup button {
+          padding: 8px 12px !important;
+          font-size: 12px !important;
+        }
+      }
+      
+      /* Ensure popup stays within map bounds */
+      .mapboxgl-popup {
+        max-width: calc(100vw - 40px) !important;
+      }
+      
+      .mapboxgl-popup-anchor-bottom .mapboxgl-popup-tip {
+        border-top-color: #ffffff !important;
+      }
+      
+      .mapboxgl-popup-anchor-top .mapboxgl-popup-tip {
+        border-bottom-color: #ffffff !important;
+      }
+      
+      .mapboxgl-popup-anchor-left .mapboxgl-popup-tip {
+        border-right-color: #ffffff !important;
+      }
+      
+      .mapboxgl-popup-anchor-right .mapboxgl-popup-tip {
+        border-left-color: #ffffff !important;
+      }
+    </style>
+    
     <script>
       mapboxgl.accessToken = 'pk.eyJ1IjoiaW50ZXJuaWNrMjAxNyIsImEiOiJjbWJ1Nnk2aWgwYnQ5MmxweDAwMTVlM20xIn0.-ACRXNq9akIVkBCzU2Gz-w';
       const map = new mapboxgl.Map({
@@ -88,8 +195,25 @@
         style: 'mapbox://styles/mapbox/streets-v11',
         center: [-47.9292, -15.7801], // Center on Brazil
         zoom: 3.5
-      });
-      map.addControl(new mapboxgl.NavigationControl());
+      });      map.addControl(new mapboxgl.NavigationControl());
+        // Function to get responsive popup configuration
+      function getResponsivePopupConfig() {
+        const mapContainer = map.getContainer();
+        const mapWidth = mapContainer.offsetWidth;
+        const mapHeight = mapContainer.offsetHeight;
+        const isMobile = window.innerWidth <= 768;
+        
+        return {
+          // Remove fixed anchor to allow auto-positioning
+          // This lets Mapbox automatically choose the best position to avoid cutoffs
+          offset: isMobile ? 15 : 25, // Smaller offset on mobile
+          closeButton: true,
+          closeOnClick: false,
+          className: 'custom-popup',
+          focusAfterOpen: false, // Prevent mobile focus issues
+          maxWidth: isMobile ? '280px' : '320px'
+        };
+      }
       
       // Initialize Weather API
       const weatherAPI = new WeatherAPI();
@@ -227,55 +351,58 @@
                   ${icon}
                 </div>
               </div>
-            `;
-
-            // Enhanced popup content with live weather
+            `;            // Enhanced popup content with live weather - Fixed styling
             const popupContent = `
-              <div style="max-width: 320px; font-family: Arial, sans-serif;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                  <h5 style="margin: 0; color: #007BFF; font-size: 16px;">${dest.name}</h5>
-                  <div style="text-align: right;">
-                    <div style="font-size: 18px;">${icon} ${temp}°C</div>
-                    <div style="font-size: 11px; color: #666;">${condition}</div>
+              <div style="width: 280px; min-height: 200px; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.4;">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px;">
+                  <h5 style="margin: 0; color: #007BFF; font-size: 18px; font-weight: 600; flex: 1;">${dest.name}</h5>
+                  <div style="text-align: right; margin-left: 10px; flex-shrink: 0;">
+                    <div style="font-size: 20px; margin-bottom: 2px;">${icon} ${temp}°C</div>
+                    <div style="font-size: 11px; color: #666; white-space: nowrap;">${condition}</div>
                   </div>
                 </div>
                 
-                <p style="margin: 0 0 8px 0; font-size: 13px; color: #666;">${dest.description}</p>
-                
-                <div style="margin-bottom: 8px;">
-                  <strong style="font-size: 12px; color: #333;">Category:</strong> 
-                  <span style="background: #e9ecef; padding: 2px 6px; border-radius: 12px; font-size: 11px;">${dest.category}</span>
-                </div>
-                
-                <div style="margin-bottom: 8px;">
-                  <strong style="font-size: 12px; color: #333;">Weather Now:</strong> 
-                  <span style="font-size: 12px;">${temp}°C, ${condition}</span><br>
-                  <strong style="font-size: 12px; color: #333;">Best Time:</strong> 
-                  <span style="font-size: 12px;">${dest.bestTime}</span>
-                </div>
+                <p style="margin: 0 0 12px 0; font-size: 13px; color: #555; line-height: 1.4;">${dest.description}</p>
                 
                 <div style="margin-bottom: 10px;">
-                  <strong style="font-size: 12px; color: #333;">Highlights:</strong>
-                  <ul style="margin: 4px 0 0 0; padding-left: 16px; font-size: 11px; color: #555;">
-                    ${dest.highlights.map(h => `<li>${h}</li>`).join('')}
-                  </ul>
+                  <span style="background: #e7f3ff; color: #0066cc; padding: 3px 8px; border-radius: 15px; font-size: 11px; font-weight: 500;">${dest.category}</span>
+                </div>
+                
+                <div style="margin-bottom: 12px; padding: 8px; background: #f8f9fa; border-radius: 6px;">
+                  <div style="margin-bottom: 4px;">
+                    <strong style="font-size: 12px; color: #333;">🌤️ Current:</strong> 
+                    <span style="font-size: 12px; color: #007BFF;">${temp}°C, ${condition}</span>
+                  </div>
+                  <div>
+                    <strong style="font-size: 12px; color: #333;">📅 Best Time:</strong> 
+                    <span style="font-size: 12px;">${dest.bestTime}</span>
+                  </div>
+                </div>
+                
+                <div style="margin-bottom: 15px;">
+                  <strong style="font-size: 12px; color: #333; display: block; margin-bottom: 6px;">✨ Top Highlights:</strong>
+                  <div style="display: flex; flex-wrap: wrap; gap: 4px;">
+                    ${dest.highlights.map(h => `<span style="background: #fff3cd; color: #856404; padding: 2px 6px; border-radius: 10px; font-size: 10px;">${h}</span>`).join('')}
+                  </div>
                 </div>
                 
                 <button onclick="addToPlanner('${dest.name}')" 
-                        style="background: #28a745; color: white; border: none; padding: 6px 12px; 
-                               border-radius: 4px; font-size: 12px; cursor: pointer; width: 100%;">
-                  Add to My Planner
-                </button>
-              </div>
-            `;
+                        style="background: linear-gradient(135deg, #28a745, #20c997); color: white; border: none; 
+                               padding: 10px 16px; border-radius: 6px; font-size: 13px; font-weight: 500; 
+                               cursor: pointer; width: 100%; transition: all 0.2s; box-shadow: 0 2px 4px rgba(40,167,69,0.2);"
+                        onmouseover="this.style.transform='translateY(-1px)'; this.style.boxShadow='0 4px 8px rgba(40,167,69,0.3)'"
+                        onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 4px rgba(40,167,69,0.2)'">
+                  <i class="fas fa-plus"></i> Add to My Planner
+                </button>              </div>
+            `;            // Create popup with responsive positioning
+            const popupConfig = getResponsivePopupConfig();
+            const popup = new mapboxgl.Popup(popupConfig)
+            .setHTML(popupContent)
+            .setMaxWidth(popupConfig.maxWidth);
 
             const marker = new mapboxgl.Marker(markerElement)
               .setLngLat(dest.coords)
-              .setPopup(new mapboxgl.Popup({ 
-                offset: 25,
-                closeButton: true,
-                closeOnClick: false 
-              }).setHTML(popupContent))
+              .setPopup(popup)
               .addTo(map);
               
             markersWithWeather.push({marker, dest, weather: currentWeather});
@@ -293,50 +420,50 @@
               border: 2px solid white;
               cursor: pointer;
               box-shadow: 0 2px 4px rgba(0,0,0,0.3);
-            `;
-
-            const popupContent = `
-              <div style="max-width: 300px; font-family: Arial, sans-serif;">
-                <h5 style="margin: 0 0 8px 0; color: #007BFF; font-size: 16px;">${dest.name}</h5>
-                <p style="margin: 0 0 8px 0; font-size: 13px; color: #666;">${dest.description}</p>
-                
-                <div style="margin-bottom: 8px;">
-                  <strong style="font-size: 12px; color: #333;">Category:</strong> 
-                  <span style="background: #e9ecef; padding: 2px 6px; border-radius: 12px; font-size: 11px;">${dest.category}</span>
-                </div>
-                
-                <div style="margin-bottom: 8px;">
-                  <strong style="font-size: 12px; color: #333;">Best Time:</strong> 
-                  <span style="font-size: 12px;">${dest.bestTime}</span>
-                </div>
-                
-                <div style="margin-bottom: 8px;">
-                  <strong style="font-size: 12px; color: #333;">Avg Temp:</strong> 
-                  <span style="font-size: 12px;">${dest.avgTemp}</span>
-                </div>
+            `;            const popupContent = `
+              <div style="width: 280px; min-height: 180px; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.4;">
+                <h5 style="margin: 0 0 10px 0; color: #007BFF; font-size: 18px; font-weight: 600;">${dest.name}</h5>
+                <p style="margin: 0 0 12px 0; font-size: 13px; color: #555; line-height: 1.4;">${dest.description}</p>
                 
                 <div style="margin-bottom: 10px;">
-                  <strong style="font-size: 12px; color: #333;">Highlights:</strong>
-                  <ul style="margin: 4px 0 0 0; padding-left: 16px; font-size: 11px; color: #555;">
-                    ${dest.highlights.map(h => `<li>${h}</li>`).join('')}
-                  </ul>
+                  <span style="background: #e7f3ff; color: #0066cc; padding: 3px 8px; border-radius: 15px; font-size: 11px; font-weight: 500;">${dest.category}</span>
+                </div>
+                
+                <div style="margin-bottom: 12px; padding: 8px; background: #f8f9fa; border-radius: 6px;">
+                  <div style="margin-bottom: 4px;">
+                    <strong style="font-size: 12px; color: #333;">🌡️ Avg Temp:</strong> 
+                    <span style="font-size: 12px;">${dest.avgTemp}</span>
+                  </div>
+                  <div>
+                    <strong style="font-size: 12px; color: #333;">📅 Best Time:</strong> 
+                    <span style="font-size: 12px;">${dest.bestTime}</span>
+                  </div>
+                </div>
+                
+                <div style="margin-bottom: 15px;">
+                  <strong style="font-size: 12px; color: #333; display: block; margin-bottom: 6px;">✨ Top Highlights:</strong>
+                  <div style="display: flex; flex-wrap: wrap; gap: 4px;">
+                    ${dest.highlights.map(h => `<span style="background: #fff3cd; color: #856404; padding: 2px 6px; border-radius: 10px; font-size: 10px;">${h}</span>`).join('')}
+                  </div>
                 </div>
                 
                 <button onclick="addToPlanner('${dest.name}')" 
-                        style="background: #28a745; color: white; border: none; padding: 6px 12px; 
-                               border-radius: 4px; font-size: 12px; cursor: pointer; width: 100%;">
-                  Add to My Planner
-                </button>
-              </div>
-            `;
+                        style="background: linear-gradient(135deg, #28a745, #20c997); color: white; border: none; 
+                               padding: 10px 16px; border-radius: 6px; font-size: 13px; font-weight: 500; 
+                               cursor: pointer; width: 100%; transition: all 0.2s; box-shadow: 0 2px 4px rgba(40,167,69,0.2);"
+                        onmouseover="this.style.transform='translateY(-1px)'; this.style.boxShadow='0 4px 8px rgba(40,167,69,0.3)'"
+                        onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 4px rgba(40,167,69,0.2)'">
+                  <i class="fas fa-plus"></i> Add to My Planner
+                </button>              </div>
+            `;            // Create fallback popup with responsive positioning
+            const fallbackPopupConfig = getResponsivePopupConfig();
+            const fallbackPopup = new mapboxgl.Popup(fallbackPopupConfig)
+            .setHTML(popupContent)
+            .setMaxWidth(fallbackPopupConfig.maxWidth);
 
             const marker = new mapboxgl.Marker(markerElement)
               .setLngLat(dest.coords)
-              .setPopup(new mapboxgl.Popup({ 
-                offset: 25,
-                closeButton: true,
-                closeOnClick: false 
-              }).setHTML(popupContent))
+              .setPopup(fallbackPopup)
               .addTo(map);
           }
         }
@@ -446,10 +573,19 @@
           map.scrollZoom.enable();
         }
       }
-      
-      // Apply mobile adjustments on load and resize
+        // Apply mobile adjustments on load and resize
       window.addEventListener('load', handleMobileMap);
       window.addEventListener('resize', handleMobileMap);
+      
+      // Handle map resize events to update popup positioning
+      map.on('resize', () => {
+        // Close any open popups on resize to prevent positioning issues
+        const popups = document.querySelectorAll('.mapboxgl-popup');
+        popups.forEach(popup => {
+          const closeButton = popup.querySelector('.mapboxgl-popup-close-button');
+          if (closeButton) closeButton.click();
+        });
+      });
       
       // Populate cards when page loads
       document.addEventListener('DOMContentLoaded', populateDestinationCards);
