@@ -66,12 +66,12 @@
 ### **Task 12: Netlify Deployment**
 **Description**: Deployed live web application to Netlify with custom domain  
 **Source**: https://github.com/internick2017/brazil-travel-planner  
-**Site**: https://brazil-travel-planner.netlify.app
+**Site**: https://brazil-travel-planner.netlify.app/  
 
 ### **BONUS Task 13: Trello Automation & Power-Up**
 **Description**: Built custom Trello Power-Up with automated project management sync  
 **Source**: https://github.com/internick2017/brazil-travel-planner/tree/master/trello-powerup-deploy  
-**Site**: https://stunning-concha-bef439.netlify.app/trello-connector.html
+**Site**: https://brazil-travel-planner.netlify.app/trello-connector.html  
 
 ---
 

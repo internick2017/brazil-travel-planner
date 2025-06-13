@@ -101,7 +101,7 @@ Complete project automation with Trello Power-Up and real-time sync
 
 **Completed Tasks:**
 - [x] Created Trello Power-Up architecture with iframe connector
-- [x] Deployed to Netlify: https://stunning-concha-bef439.netlify.app/
+- [x] Deployed to Netlify: https://brazil-travel-planner.netlify.app/
 - [x] Configured Trello API with key and token authentication
 - [x] Built automatic sync system with file watching
 - [x] Implemented real-time project status tracking
