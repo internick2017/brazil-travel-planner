@@ -97,11 +97,21 @@ body {
     box-shadow: var(--shadow);
     transition: transform 0.3s ease, box-shadow 0.3s ease;
     height: 100%;
+    cursor: pointer;
 }
 
 .feature-card:hover {
     transform: translateY(-5px);
     box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+}
+
+/* Make feature card links look natural */
+a .feature-card {
+    color: inherit;
+}
+
+a .feature-card:hover {
+    color: inherit;
 }
 
 /* Destination Cards */
