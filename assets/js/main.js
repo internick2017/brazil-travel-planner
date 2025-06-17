@@ -1,11 +1,11 @@
 // Brazil Travel Planner - Main JavaScript Application
 
 class BrazilTravelApp {
-    constructor() {
-        // Initialize APIs
+    constructor() {        // Initialize APIs
         this.weatherAPI = null;
         this.countriesAPI = null;
         this.brazilAPI = null;
+        this.weatherAlertSystem = null;
         this.destinations = this.getBrazilianDestinations();
         this.init();
     }
@@ -28,9 +28,11 @@ class BrazilTravelApp {
             // Load Brazilian holidays
             await this.loadBrazilianHolidays();
         }
-        
-        // Initialize search functionality
+          // Initialize search functionality
         this.initSearch();
+        
+        // Initialize weather alert system
+        this.initWeatherAlerts();
         
         console.log('✅ Brazil Travel Planner - Ready!');
     }    initializeAPIs() {
@@ -94,7 +96,17 @@ class BrazilTravelApp {
                 e.currentTarget.classList.add('active');
             });
         });
-    }    async loadInitialWeatherData() {
+    }    initWeatherAlerts() {
+        // Initialize Weather Alert System if available
+        if (window.WeatherAlertSystem && this.weatherAPI) {
+            this.weatherAlertSystem = new WeatherAlertSystem(this.weatherAPI);
+            console.log('🚨 Weather Alert System initialized');
+        } else {
+            console.warn('⚠️ Weather Alert System not available. Weather alerts disabled.');
+        }
+    }
+
+    async loadInitialWeatherData() {
         const weatherPreview = document.getElementById('weatherPreview');
         
         if (!weatherPreview) return;
