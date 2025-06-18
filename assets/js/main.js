@@ -1,7 +1,8 @@
 // Brazil Travel Planner - Main JavaScript Application
 
 class BrazilTravelApp {
-    constructor() {        // Initialize APIs
+    constructor() {
+        // Initialize APIs
         this.weatherAPI = null;
         this.countriesAPI = null;
         this.brazilAPI = null;
@@ -18,11 +19,11 @@ class BrazilTravelApp {
         
         // Initialize event listeners
         this.initEventListeners();
-        
-        // Load page-specific content
+          // Load page-specific content
         if (window.location.pathname.includes('destinations.html')) {
             this.loadDestinations();
-            this.initDestinationHandlers();        } else {
+            this.initDestinationHandlers();
+        } else {
             // Load initial weather data for home page
             await this.loadInitialWeatherData();
             // Load Brazilian holidays
