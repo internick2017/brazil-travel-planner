@@ -680,10 +680,63 @@
             }
         }
 
-        // Initialize when DOM is ready
         document.addEventListener('DOMContentLoaded', () => {
-            new RegionalWeatherComparison();
+            // Initialize weather comparison when page loads
+            if (window.WeatherAPI && window.WeatherComparison) {
+                const weatherAPI = new WeatherAPI();
+                weatherComparison = new WeatherComparison(weatherAPI);
+                
+                // Auto-compare default cities on load
+                setTimeout(() => compareWeather(), 1000);
+            }
         });
+
+        async function compareWeather() {
+            const selectedCities = getSelectedCities();
+            
+            if (selectedCities.length === 0) {
+                alert('Please select at least one city to compare');
+                return;
+            }
+
+            // Show loading state
+            document.getElementById('weatherLoadingState').classList.remove('d-none');
+            document.getElementById('weatherComparisonResults').classList.add('d-none');
+
+            try {
+                // Compare weather for selected cities
+                await weatherComparison.compareRegions(selectedCities);
+                
+                // Render results
+                weatherComparison.renderComparison('comparisonContainer');
+                
+                // Show results
+                document.getElementById('weatherLoadingState').classList.add('d-none');
+                document.getElementById('weatherComparisonResults').classList.remove('d-none');
+                
+                // Scroll to results
+                document.getElementById('weatherComparisonResults').scrollIntoView({ behavior: 'smooth' });
+                
+            } catch (error) {
+                console.error('Error comparing weather:', error);
+                document.getElementById('weatherLoadingState').classList.add('d-none');
+                alert('Error loading weather data. Please try again.');
+            }
+        }
+
+        function getSelectedCities() {
+            const checkboxes = document.querySelectorAll('.city-checkbox:checked');
+            return Array.from(checkboxes).map(cb => cb.value);
+        }
+
+        function selectAll() {
+            const checkboxes = document.querySelectorAll('.city-checkbox');
+            const allSelected = Array.from(checkboxes).every(cb => cb.checked);
+            
+            checkboxes.forEach(cb => {
+                cb.checked = !allSelected;
+            });
+        }
     </script>
 </body>
 </html>

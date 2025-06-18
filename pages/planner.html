@@ -173,19 +173,8 @@
                         <h6 class="mb-0"><i class="fas fa-calendar-day me-2"></i>Upcoming Brazilian Holidays</h6>
                     </div>
                     <div class="card-body">
-                        <div id="holidaysList">
-                            <div class="d-flex justify-content-between align-items-center mb-2">
-                                <span class="small">Independence Day</span>
-                                <span class="badge bg-success">Sep 7</span>
-                            </div>
-                            <div class="d-flex justify-content-between align-items-center mb-2">
-                                <span class="small">Our Lady of Aparecida</span>
-                                <span class="badge bg-success">Oct 12</span>
-                            </div>
-                            <div class="d-flex justify-content-between align-items-center">
-                                <span class="small">Proclamation of Republic</span>
-                                <span class="badge bg-success">Nov 15</span>
-                            </div>
+                        <div id="holidaysCalendar">
+                            <!-- Holiday calendar will be rendered here -->
                         </div>
                     </div>
                 </div>
@@ -216,6 +205,30 @@
                         </ul>
                     </div>
                 </div>
+                
+                <!-- Travel Dates Recommendations -->
+                <div class="card shadow-custom rounded-custom mb-4">
+                    <div class="card-header bg-info text-white">
+                        <h6 class="mb-0"><i class="fas fa-calendar-check me-2"></i>Best Travel Dates</h6>
+                    </div>
+                    <div class="card-body">
+                        <div id="travelDatesRecommendations">
+                            <p class="text-muted small mb-0">Complete the trip form to see personalized date recommendations</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Weather Alerts -->
+                <div class="card shadow-custom rounded-custom mb-4">
+                    <div class="card-header bg-warning text-dark">
+                        <h6 class="mb-0"><i class="fas fa-exclamation-triangle me-2"></i>Weather Alerts</h6>
+                    </div>
+                    <div class="card-body">
+                        <div id="weatherAlerts">
+                            <p class="text-muted small mb-0">No active weather alerts</p>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -242,6 +255,15 @@
 
     <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="../assets/js/modules/config.js"></script>
+    <script src="../assets/js/modules/utils.js"></script>
+    <script src="../assets/js/modules/weather.js"></script>
+    <script src="../assets/js/modules/brazil.js"></script>
+    <script src="../assets/js/modules/countries.js"></script>
+    <script src="../assets/js/modules/holiday.js"></script>
+    <script src="../assets/js/modules/weather-comparison.js"></script>
+    <script src="../assets/js/modules/travel-dates.js"></script>
+    <script src="../assets/js/modules/weather-alerts.js"></script>
     <script src="../assets/js/main.js"></script>
 </body>
 </html>

@@ -256,3 +256,116 @@ a .feature-card:hover {
 .rounded-custom {
     border-radius: var(--border-radius) !important;
 }
+
+/* Smart Itinerary Styles */
+.timeline {
+    position: relative;
+}
+
+.timeline::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: linear-gradient(to bottom, var(--primary-color), var(--secondary-color));
+    margin-left: 15px;
+}
+
+.timeline-item {
+    position: relative;
+    margin-left: 40px;
+    border-left: none !important;
+}
+
+.timeline-item::before {
+    content: '';
+    position: absolute;
+    left: -47px;
+    top: 20px;
+    width: 12px;
+    height: 12px;
+    background: var(--primary-color);
+    border-radius: 50%;
+    border: 3px solid white;
+    box-shadow: 0 0 0 2px var(--primary-color);
+}
+
+.budget-overview {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+}
+
+.alerts-section .alert-sm {
+    padding: 0.5rem 0.75rem;
+    margin-bottom: 0.5rem;
+    font-size: 0.875rem;
+}
+
+.weather-info {
+    background: rgba(var(--bs-primary-rgb), 0.1);
+    padding: 4px 8px;
+    border-radius: 4px;
+    display: inline-block;
+}
+
+.activities ul, .tips ul {
+    padding-left: 1.2rem;
+    margin-bottom: 0;
+}
+
+.activities li, .tips li {
+    margin-bottom: 0.25rem;
+}
+
+.card.h-100 {
+    transition: transform 0.2s ease-in-out;
+}
+
+.card.h-100:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+}
+
+/* Progress bar customization */
+.progress-bar {
+    background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
+}
+
+/* Print styles for itinerary */
+@media print {
+    .timeline::before {
+        background: #333 !important;
+    }
+    
+    .timeline-item::before {
+        background: #333 !important;
+        box-shadow: 0 0 0 2px #333 !important;
+    }
+    
+    .card {
+        border: 1px solid #ddd !important;
+        box-shadow: none !important;
+    }
+    
+    .btn {
+        display: none !important;
+    }
+}
+
+/* Mobile responsive timeline */
+@media (max-width: 768px) {
+    .timeline::before {
+        left: 10px;
+    }
+    
+    .timeline-item {
+        margin-left: 30px;
+    }
+    
+    .timeline-item::before {
+        left: -37px;
+        width: 10px;
+        height: 10px;
+    }
+}

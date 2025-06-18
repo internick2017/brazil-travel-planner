@@ -129,9 +129,12 @@
         <a href="about.html" class="bottom-nav-item">
             <i class="fas fa-user"></i>
             <span>Profile</span>
-        </a>
-    </nav>    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src='https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js'></script>    <script src="../assets/js/modules/config.js"></script>
+        </a>    </nav>
+    
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src='https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js'></script>
+    <script src="../assets/js/modules/config.js"></script>
     <script src="../assets/js/modules/utils.js"></script>
     <script src="../assets/js/modules/weather.js"></script>
     <link href='https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css' rel='stylesheet' />
@@ -192,13 +195,14 @@
     </style>
     
     <script>
-      mapboxgl.accessToken = 'pk.eyJ1IjoiaW50ZXJuaWNrMjAxNyIsImEiOiJjbWJ1Nnk2aWgwYnQ5MmxweDAwMTVlM20xIn0.-ACRXNq9akIVkBCzU2Gz-w';
-      const map = new mapboxgl.Map({
+      mapboxgl.accessToken = 'pk.eyJ1IjoiaW50ZXJuaWNrMjAxNyIsImEiOiJjbWJ1Nnk2aWgwYnQ5MmxweDAwMTVlM20xIn0.-ACRXNq9akIVkBCzU2Gz-w';      const map = new mapboxgl.Map({
         container: 'map',
         style: 'mapbox://styles/mapbox/streets-v11',
         center: [-47.9292, -15.7801], // Center on Brazil
         zoom: 3.5
-      });      map.addControl(new mapboxgl.NavigationControl());
+      });
+      
+      map.addControl(new mapboxgl.NavigationControl());
         // Function to get responsive popup configuration
       function getResponsivePopupConfig() {
         const mapContainer = map.getContainer();
@@ -470,90 +474,9 @@
               .addTo(map);
           }
         }
-      }
+      }      // All destination data and templating is now handled by main.js for consistency
+      // The map will be populated by main.js destination data
       
-      // Initialize markers with weather when page loads
-      map.on('load', createMarkersWithWeather);
-      
-      // Remove the old marker creation code and replace with weather-enabled version
-      // destinations.forEach(dest => { ... }); // This is replaced by createMarkersWithWeather()
-      // Function to add destination to planner
-      window.addToPlanner = function(destinationName) {
-        // Store in localStorage for the planner page
-        let savedDestinations = JSON.parse(localStorage.getItem('plannedDestinations') || '[]');
-        if (!savedDestinations.includes(destinationName)) {
-          savedDestinations.push(destinationName);
-          localStorage.setItem('plannedDestinations', JSON.stringify(savedDestinations));
-          alert(`${destinationName} added to your planner!`);
-        } else {
-          alert(`${destinationName} is already in your planner.`);
-        }
-      };      // Enhanced destination cards with weather data
-      function populateDestinationCards() {
-        const container = document.getElementById('destinationsContainer');
-        
-        // Show loading state
-        container.innerHTML = `
-          <div class="col-12 text-center">
-            <div class="spinner-border text-primary" role="status">
-              <span class="visually-hidden">Loading destinations and weather...</span>
-            </div>
-            <p class="mt-2 text-muted">Fetching live weather data...</p>
-          </div>
-        `;
-        
-        // Wait for weather data to load, then populate cards
-        setTimeout(() => {
-          container.innerHTML = destinations.map((dest, index) => {
-            const weatherInfo = markersWithWeather[index]?.weather;
-            const weatherDisplay = weatherInfo ? 
-              `<span class="badge" style="background-color: ${getTempColor(weatherInfo.temp)}">${Math.round(weatherInfo.temp)}°C</span>` : 
-              `<span class="badge bg-secondary">${dest.avgTemp}</span>`;
-              
-            return `
-              <div class="col-lg-4 col-md-6 mb-4">
-                <div class="card h-100 shadow-sm">
-                  <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-start mb-2">
-                      <h5 class="card-title text-primary">${dest.name}</h5>
-                      ${weatherDisplay}
-                    </div>
-                    ${weatherInfo ? `<p class="small text-muted mb-2">${getWeatherIcon(weatherInfo.conditions)} ${weatherInfo.conditions}</p>` : ''}
-                    <p class="card-text text-muted small">${dest.description}</p>
-                    
-                    <div class="mb-2">
-                      <small class="text-muted"><strong>Category:</strong> ${dest.category}</small><br>
-                      <small class="text-muted"><strong>Best Time:</strong> ${dest.bestTime}</small>
-                    </div>
-                    
-                    <div class="mb-3">
-                      <small class="text-muted"><strong>Top Highlights:</strong></small>
-                      <div class="mt-1">
-                        ${dest.highlights.slice(0, 3).map(h => `<span class="badge bg-light text-dark me-1">${h}</span>`).join('')}
-                      </div>
-                    </div>
-                  </div>
-                  <div class="card-footer bg-transparent">
-                    <div class="row">
-                      <div class="col-6">
-                        <button class="btn btn-outline-primary btn-sm w-100" onclick="focusOnMap(${dest.coords[0]}, ${dest.coords[1]})">
-                          <i class="fas fa-map-marker-alt"></i> View on Map
-                        </button>
-                      </div>
-                      <div class="col-6">
-                        <button class="btn btn-primary btn-sm w-100" onclick="addToPlanner('${dest.name}')">
-                          <i class="fas fa-plus"></i> Add to Plan
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            `;
-          }).join('');
-        }, 3000); // Give time for weather data to load
-      }
-
       // Function to focus map on specific destination
       window.focusOnMap = function(lng, lat) {
         map.flyTo({
@@ -576,7 +499,8 @@
           map.scrollZoom.enable();
         }
       }
-        // Apply mobile adjustments on load and resize
+      
+      // Apply mobile adjustments on load and resize
       window.addEventListener('load', handleMobileMap);
       window.addEventListener('resize', handleMobileMap);
       
@@ -589,9 +513,8 @@
           if (closeButton) closeButton.click();
         });
       });
-      
-      // Populate cards when page loads
-      document.addEventListener('DOMContentLoaded', populateDestinationCards);
+        // DOMContentLoaded is handled by main.js for consistent initialization
+      // populateDestinationCards is no longer needed as main.js handles all destination rendering
     </script>
     <script src="../assets/js/main.js"></script>
 </body>

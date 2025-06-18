@@ -8,35 +8,50 @@ class BrazilTravelApp {
         this.brazilAPI = null;
         this.weatherAlertSystem = null;
         this.destinations = this.getBrazilianDestinations();
+        
+        // Initialize selected destinations from localStorage
+        const savedDestinations = JSON.parse(localStorage.getItem('selectedDestinations') || '[]');
+        this.selectedDestinations = new Map(savedDestinations);
+        this.maxDestinations = 5; // Maximum number of destinations that can be added
+        
         this.init();
     }
 
     async init() {
-        console.log('🇧🇷 Brazil Travel Planner - Initializing...');
+        console.log('🇧🇷 Brazil Travel App initializing...');
+        this.updateNavigationCounter();
         
-        // Initialize APIs
-        this.initializeAPIs();
-        
-        // Initialize event listeners
-        this.initEventListeners();
-          // Load page-specific content
-        if (window.location.pathname.includes('destinations.html')) {
-            this.loadDestinations();
-            this.initDestinationHandlers();
-        } else {
-            // Load initial weather data for home page
-            await this.loadInitialWeatherData();
-            // Load Brazilian holidays
-            await this.loadBrazilianHolidays();
+        // Initialize modules
+        if (this.weatherAPI) {
+            console.log('🌤️ Weather API initialized');
+            this.initWeatherAlerts();
+            this.initWeatherComparison();
+            this.initTravelDatesCalculator();
         }
-          // Initialize search functionality
-        this.initSearch();
         
-        // Initialize weather alert system
-        this.initWeatherAlerts();
+        if (this.brazilAPI) {
+            console.log('🇧🇷 Brazil API initialized');
+        }
         
-        console.log('✅ Brazil Travel Planner - Ready!');
-    }    initializeAPIs() {
+        if (this.countriesAPI) {
+            console.log('🌍 Countries API initialized');
+        }
+        
+        // Load initial data
+        try {
+            await this.loadInitialWeatherData();
+            await this.loadUpcomingHolidays();
+        } catch (error) {
+            console.log('⚠️ Some APIs failed to load, using fallback data');
+        }
+        
+        // Initialize page-specific features
+        this.initializePage();
+        
+        console.log('✅ Brazil Travel App ready!');
+    }
+
+    initializeAPIs() {
         // Initialize Weather API if config is available
         if (window.WeatherAPI && window.API_CONFIG) {
             this.weatherAPI = new WeatherAPI();
@@ -107,113 +122,127 @@ class BrazilTravelApp {
         }
     }
 
+    initWeatherComparison() {
+        if (window.WeatherComparison) {
+            this.weatherComparison = new WeatherComparison(this.weatherAPI);
+            console.log('🌡️ Weather Comparison module initialized');
+        }
+    }
+
+    initTravelDatesCalculator() {
+        if (window.TravelDatesCalculator && window.HolidayAPI) {
+            this.travelDatesCalculator = new TravelDatesCalculator(this.weatherAPI, window.HolidayAPI);
+            console.log('📅 Travel Dates Calculator initialized');
+        }
+    }
+
+    async loadUpcomingHolidays() {
+        if (window.HolidayAPI) {
+            try {
+                const holidays = await window.HolidayAPI.fetchHolidays();
+                this.upcomingHolidays = holidays.slice(0, 5); // Next 5 holidays
+                console.log('📅 Loaded upcoming holidays');
+            } catch (error) {
+                console.warn('Could not load holidays:', error);
+            }
+        }
+    }
+
     async loadInitialWeatherData() {
         const weatherPreview = document.getElementById('weatherPreview');
-        
         if (!weatherPreview) return;
 
-        try {
-            if (this.weatherAPI && this.weatherAPI.apiKey && this.weatherAPI.apiKey !== 'YOUR_VISUAL_CROSSING_API_KEY_HERE') {
-                // Use real weather API
-                weatherPreview.innerHTML = `
-                    <div class="text-center">
-                        <div class="spinner-border spinner-border-sm text-warning" role="status">
-                            <span class="visually-hidden">Loading weather...</span>
-                        </div>
-                        <p class="mt-2 mb-0 text-white-50">Loading current weather for Brazilian cities...</p>
-                    </div>
-                `;
+        // Show loading spinner
+        weatherPreview.innerHTML = `
+            <div class="text-center">
+                <div class="spinner-border spinner-border-sm text-warning" role="status"></div>
+                <p class="mt-2 mb-0 text-white-50">Loading live weather data...</p>
+            </div>
+        `;
 
-                const cities = ['Rio de Janeiro,Brazil', 'São Paulo,Brazil'];
-                const weatherData = await this.weatherAPI.getMultipleCitiesWeather(cities);
-                
-                let weatherHTML = '<div class="row">';
-                
-                for (const [city, result] of Object.entries(weatherData)) {
-                    if (result.success) {
-                        const formatted = this.weatherAPI.formatWeatherDisplay(result.data);
-                        const cityName = city.split(',')[0];
-                        const iconClass = this.getWeatherIcon(formatted.condition);
-                        
-                        weatherHTML += `
-                            <div class="col-md-6 mb-3">
-                                <div class="d-flex align-items-center">
-                                    <i class="${iconClass} fa-2x text-warning me-3 weather-icon"></i>
-                                    <div>
-                                        <h6 class="mb-1">${cityName}</h6>
-                                        <p class="mb-0">${formatted.temperature}°C - ${formatted.condition}</p>
-                                    </div>
-                                </div>
-                            </div>
-                        `;
-                    } else {
-                        const cityName = city.split(',')[0];
-                        weatherHTML += `
-                            <div class="col-md-6 mb-3">
-                                <div class="d-flex align-items-center">
-                                    <i class="fas fa-exclamation-triangle fa-2x text-warning me-3"></i>
-                                    <div>
-                                        <h6 class="mb-1">${cityName}</h6>
-                                        <p class="mb-0">Weather unavailable</p>
-                                    </div>
-                                </div>
-                            </div>
-                        `;
-                    }
-                }
-                
-                weatherHTML += '</div>';
-                weatherHTML += `
-                    <small class="text-white-50">
-                        <i class="fas fa-clock me-1"></i>
-                        Updated: ${new Date().toLocaleTimeString()} (Live API)
-                    </small>
-                `;
-                weatherPreview.innerHTML = weatherHTML;
-                
-                console.log('✅ Live weather data loaded successfully');
-                
-            } else {
-                // Fallback to static data
-                console.log('⚠️ Using static weather data - API not configured');
-                this.loadStaticWeatherData(weatherPreview);
-            }
+        try {
+            const weatherData = await this.loadRealTimeWeatherData();
+            this.renderLiveWeatherData(weatherPreview, weatherData);
         } catch (error) {
-            console.error('Weather API error:', error);
+            console.warn('⚠️ Real-time weather failed, using static data.', error);
             this.loadStaticWeatherData(weatherPreview);
         }
     }
 
-    loadStaticWeatherData(weatherPreview) {
-        // Fallback static weather data
-        setTimeout(() => {
-            weatherPreview.innerHTML = `
-                <div class="row">
-                    <div class="col-md-6 mb-3">
-                        <div class="d-flex align-items-center">
-                            <i class="fas fa-sun fa-2x text-warning me-3 weather-icon"></i>
-                            <div>
-                                <h6 class="mb-1">Rio de Janeiro</h6>
-                                <p class="mb-0">28°C - Sunny</p>
-                            </div>
+    // Fetch real-time weather for major cities
+    async loadRealTimeWeatherData() {
+        if (!this.weatherAPI) throw new Error('Weather API not initialized');
+
+        const cities = ['Rio de Janeiro', 'São Paulo', 'Brasília', 'Salvador'];
+        const promises = cities.map(name =>
+            this.weatherAPI.getCurrentWeather(`${name},Brazil`)
+                .then(data => ({ name, data, success: true }))
+                .catch(err => ({ name, err, success: false }))
+        );
+        const results = await Promise.all(promises);
+
+        return results.map(item => {
+            if (item.success) {
+                const cond = item.data.conditions || 'Clear';
+                return {
+                    city: item.name,
+                    temperature: Math.round(item.data.temp),
+                    condition: cond,
+                    icon: this.getWeatherIcon(cond),
+                    humidity: item.data.humidity,
+                    windSpeed: item.data.windspeed,
+                    isLive: true
+                };
+            } else {
+                return this.getFallbackCityWeather(item.name);
+            }
+        });
+    }
+
+    // Fallback static weather
+    getFallbackCityWeather(cityName) {
+        const fallback = {
+            'Rio de Janeiro': { temp: 28, cond: 'Partly cloudy', hum: 70, wind: 12 },
+            'São Paulo': { temp: 22, cond: 'Cloudy', hum: 65, wind: 8 },
+            'Brasília': { temp: 26, cond: 'Clear', hum: 45, wind: 15 },
+            'Salvador': { temp: 29, cond: 'Sunny', hum: 75, wind: 14 }
+        }[cityName] || { temp: 25, cond: 'Clear', hum: 60, wind: 10 };
+        return {
+            city: cityName,
+            temperature: fallback.temp,
+            condition: fallback.cond,
+            icon: this.getWeatherIcon(fallback.cond),
+            humidity: fallback.hum,
+            windSpeed: fallback.wind,
+            isLive: false
+        };
+    }
+
+    // Render weather cards
+    renderLiveWeatherData(container, data) {
+        const live = data.some(d => d.isLive);
+        container.innerHTML = `
+            <div class="row g-2">
+                ${data.map(d => `
+                    <div class="col-6 col-lg-3">
+                        <div class="weather-card p-3 rounded bg-white bg-opacity-10 text-center">
+                            <div class="weather-icon mb-2">${d.icon}</div>
+                            <h6 class="text-white mb-1">${d.city}</h6>
+                            <div class="h5 text-warning mb-1">${d.temperature}°C</div>
+                            <small class="text-light d-block">${d.condition}</small>
+                            <small class="text-light opacity-75 d-block mt-1">
+                                <i class="fas fa-tint me-1"></i>${d.humidity}%
+                                <span class="mx-1">•</span>
+                                <i class="fas fa-wind me-1"></i>${d.windSpeed} km/h
+                            </small>
                         </div>
                     </div>
-                    <div class="col-md-6 mb-3">
-                        <div class="d-flex align-items-center">
-                            <i class="fas fa-cloud-rain fa-2x text-info me-3 weather-icon"></i>
-                            <div>
-                                <h6 class="mb-1">São Paulo</h6>
-                                <p class="mb-0">22°C - Rainy</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <small class="text-white-50">
-                    <i class="fas fa-clock me-1"></i>
-                    Updated: ${new Date().toLocaleTimeString()} (Demo Data)
-                </small>
-            `;
-        }, 1500);
+                `).join('')}
+            </div>
+            <div class="mt-2 text-end text-white-50" style="font-size: .85rem;">
+                Updated: ${new Date().toLocaleTimeString()} ${live ? '<span class="badge bg-success ms-2">LIVE</span>' : '<span class="badge bg-warning text-dark ms-2">CACHED</span>'}
+            </div>
+        `;
     }
 
     getWeatherIcon(condition) {
@@ -412,6 +441,10 @@ class BrazilTravelApp {
             `;
         }
 
+        // Load previously selected destinations
+        const savedDestinations = JSON.parse(localStorage.getItem('selectedDestinations') || '[]');
+        this.selectedDestinations = new Map(savedDestinations);
+
         return destinations.map(dest => `
             <div class="col-lg-4 col-md-6 mb-4">
                 <div class="card destination-card h-100 shadow-sm">
@@ -430,7 +463,7 @@ class BrazilTravelApp {
                     <div class="card-body d-flex flex-column">
                         <div class="d-flex justify-content-between align-items-start mb-2">
                             <h5 class="card-title mb-1">${dest.name}</h5>
-                            <button class="btn btn-outline-danger btn-sm favorite-btn" data-destination-id="${dest.id}">
+                            <button class="btn btn-sm favorite-btn" data-destination-id="${dest.id}">
                                 <i class="far fa-heart"></i>
                             </button>
                         </div>
@@ -448,9 +481,15 @@ class BrazilTravelApp {
                                 <i class="fas fa-users me-1"></i>
                                 ${dest.crowdLevel} crowds
                             </small>
-                            <button class="btn btn-primary btn-sm view-details-btn" data-destination-id="${dest.id}">
-                                View Details
-                            </button>
+                            <div class="btn-group">
+                                <button class="btn btn-outline-primary btn-sm view-details-btn" data-destination-id="${dest.id}">
+                                    <i class="fas fa-info-circle me-1"></i>Details
+                                </button>                                <button class="btn ${this.selectedDestinations.has(dest.id.toString()) ? 'btn-success' : 'btn-primary'} btn-sm add-to-plan-btn" data-destination-id="${dest.id}">
+                                    ${this.selectedDestinations.has(dest.id.toString()) ? 
+                                        '<i class="fas fa-check me-1"></i>Added' : 
+                                        '<i class="fas fa-plus me-1"></i>Add to Plan'}
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -486,6 +525,25 @@ class BrazilTravelApp {
                 this.showDestinationDetails(destinationId);
             }
         });
+
+        // Add to Plan button handlers
+        document.addEventListener('click', (e) => {
+            const addToPlanBtn = e.target.closest('.add-to-plan-btn');
+            if (addToPlanBtn) {
+                const destinationId = addToPlanBtn.dataset.destinationId;
+                this.handleAddToPlan(destinationId);
+            }
+        });
+
+        // Load any previously selected destinations
+        const savedDestinations = JSON.parse(localStorage.getItem('selectedDestinations') || '[]');
+        this.selectedDestinations = new Map(savedDestinations);
+        
+        // Update the UI to reflect loaded destinations
+        this.selectedDestinations.forEach((_, id) => {
+            this.updateAddToPlanButton(id, true);
+        });
+        this.updatePlannerLink();
     }
 
     showDestinationDetails(destinationId) {
@@ -502,6 +560,58 @@ class BrazilTravelApp {
         const durationSelect = document.getElementById('tripDuration');
         
         if (tripForm) {
+            // Load pre-selected destinations if any
+            const urlParams = new URLSearchParams(window.location.search);
+            const selectedDestIds = urlParams.get('destinations')?.split(',') || [];
+            const savedDestinations = JSON.parse(localStorage.getItem('selectedDestinations') || '[]');
+            
+            this.selectedDestinations = new Map(savedDestinations);
+            
+            if (selectedDestIds.length > 0 || this.selectedDestinations.size > 0) {
+                const selectedDestinationsDiv = document.createElement('div');
+                selectedDestinationsDiv.className = 'selected-destinations mb-4';
+                selectedDestinationsDiv.innerHTML = `
+                    <h5 class="mb-3">Selected Destinations</h5>
+                    <div class="row g-3">
+                        ${Array.from(this.selectedDestinations.values()).map(dest => `
+                            <div class="col-md-6">
+                                <div class="card">
+                                    <div class="card-body">
+                                        <div class="d-flex justify-content-between align-items-start">
+                                            <h6 class="card-title mb-1">${dest.name}</h6>
+                                            <button type="button" class="btn btn-sm btn-outline-danger remove-destination" 
+                                                    data-destination-id="${dest.id}">
+                                                <i class="fas fa-times"></i>
+                                            </button>
+                                        </div>
+                                        <p class="text-muted small mb-0">${dest.state} • ${dest.region}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+                
+                // Insert before the form
+                tripForm.parentNode.insertBefore(selectedDestinationsDiv, tripForm);
+                
+                // Add event listeners for remove buttons
+                document.querySelectorAll('.remove-destination').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        const destId = e.currentTarget.dataset.destinationId;
+                        this.selectedDestinations.delete(destId);
+                        localStorage.setItem('selectedDestinations', 
+                            JSON.stringify(Array.from(this.selectedDestinations.entries())));
+                        e.currentTarget.closest('.col-md-6').remove();
+                        
+                        // If no destinations left, remove the section
+                        if (this.selectedDestinations.size === 0) {
+                            selectedDestinationsDiv.remove();
+                        }
+                    });
+                });
+            }
+
             tripForm.addEventListener('submit', this.handleTripSubmission.bind(this));
         }
         
@@ -544,7 +654,45 @@ class BrazilTravelApp {
             return;
         }
         
+        // Generate the trip itinerary
         this.generateTripItinerary(formData);
+
+        // Fetch and render holiday calendar for the trip dates
+        if (window.HolidayAPI) {
+            HolidayAPI.fetchHolidays()
+                .then(allHols => HolidayAPI.filterHolidaysByRange(allHols, formData.startDate, formData.endDate))
+                .then(filtered => HolidayAPI.renderHolidayCalendar('holidaysCalendar', filtered))
+                .catch(err => console.error('Error loading holidays:', err));
+        }
+
+        // Generate travel dates recommendation if calculator is available
+        if (this.travelDatesCalculator) {
+            const preferences = {
+                activities: formData.activities,
+                budget: formData.budget,
+                duration: parseInt(formData.duration)
+            };
+            
+            this.travelDatesCalculator.calculateBestDates(preferences)
+                .then(recommendations => {
+                    const container = document.getElementById('travelDatesRecommendations');
+                    if (container) {
+                        this.travelDatesCalculator.renderCalculation('travelDatesRecommendations', recommendations);
+                    }
+                })
+                .catch(err => console.error('Error calculating travel dates:', err));
+        }
+
+        // Start weather monitoring if alerts are enabled
+        if (this.weatherAlertSystem) {
+            this.weatherAlertSystem.checkWeatherAlerts()
+                .then(alerts => {
+                    if (alerts.length > 0) {
+                        console.log(`🚨 ${alerts.length} weather alerts detected`);
+                    }
+                })
+                .catch(err => console.error('Error checking weather alerts:', err));
+        }
     }
 
     getSelectedActivities() {
@@ -578,9 +726,7 @@ class BrazilTravelApp {
         }
         
         return true;
-    }
-
-    generateTripItinerary(formData) {
+    }    generateTripItinerary(formData) {
         const generatedTrip = document.getElementById('generatedTrip');
         const tripItinerary = document.getElementById('tripItinerary');
         
@@ -590,82 +736,157 @@ class BrazilTravelApp {
         tripItinerary.innerHTML = `
             <div class="text-center">
                 <div class="spinner-border text-primary" role="status">
-                    <span class="visually-hidden">Generating your trip...</span>
+                    <span class="visually-hidden">Generating your intelligent trip plan...</span>
                 </div>
-                <p class="mt-3">Creating your personalized Brazil itinerary...</p>
+                <p class="mt-3">Analyzing destinations, weather, and creating optimal itinerary...</p>
             </div>
         `;
         
         generatedTrip.classList.remove('d-none');
         
-        // Simulate trip generation
+        // Get recommended destinations based on activities and dates
+        let recommendedDestinations = this.getRecommendedDestinations(
+            formData.activities,
+            formData.startDate,
+            formData.duration
+        );
+
+        // If user has pre-selected destinations, use those instead
+        if (this.selectedDestinations.size > 0) {
+            recommendedDestinations = Array.from(this.selectedDestinations.values()).map(dest => ({
+                ...dest,
+                matchScore: this.calculateDestinationMatch(dest, formData.activities),
+                recommendedDays: this.calculateRecommendedDays(dest, formData.activities)
+            }));
+        }
+
+        // Generate smart itinerary
         setTimeout(() => {
-            const itinerary = this.createItinerary(formData);
-            tripItinerary.innerHTML = itinerary;
-            
+            const smartItinerary = this.generateSmartItinerary(formData, recommendedDestinations);
+            tripItinerary.innerHTML = this.renderSmartItinerary(formData, smartItinerary);
             // Scroll to generated trip
             generatedTrip.scrollIntoView({ behavior: 'smooth' });
         }, 2000);
     }
 
-    createItinerary(formData) {
-        const recommendedDestinations = this.getRecommendedDestinations(formData.activities);
-        
+    calculateDestinationMatch(destination, selectedActivities) {
+        const matchingActivities = destination.activities.filter(
+            activity => selectedActivities.includes(activity)
+        );
+        return Math.round((matchingActivities.length / selectedActivities.length) * 100);
+    }
+
+    createItinerary(formData, recommendedDestinations) {
+        if (recommendedDestinations.length === 0) {
+            return `
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    No destinations match your criteria. Try selecting different activities or dates.
+                </div>
+            `;
+        }
+
+        // Calculate total trip match score
+        const averageMatchScore = Math.round(
+            recommendedDestinations.reduce((sum, dest) => sum + dest.matchScore, 0) / 
+            recommendedDestinations.length
+        );
+
+        const startDate = new Date(formData.startDate);
+        const endDate = new Date(formData.endDate);
+
         return `
             <div class="trip-header mb-4">
-                <h4 class="text-primary">${formData.tripName}</h4>
-                <div class="row">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h4 class="text-primary mb-0">${formData.tripName}</h4>
+                    <span class="badge bg-success fs-6">
+                        <i class="fas fa-star me-1"></i>${averageMatchScore}% Match
+                    </span>
+                </div>
+                <hr>
+                <div class="row g-3">
                     <div class="col-md-3">
                         <small class="text-muted">Duration:</small>
                         <br><strong>${formData.duration} days</strong>
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-md-4">
                         <small class="text-muted">Dates:</small>
-                        <br><strong>${new Date(formData.startDate).toLocaleDateString()} - ${new Date(formData.endDate).toLocaleDateString()}</strong>
+                        <br><strong>${startDate.toLocaleDateString('en-US', { dateStyle: 'medium' })} - ${endDate.toLocaleDateString('en-US', { dateStyle: 'medium' })}</strong>
                     </div>
                     <div class="col-md-3">
-                        <small class="text-muted">Budget:</small>
+                        <small class="text-muted">Budget Level:</small>
                         <br><strong>${formData.budget.charAt(0).toUpperCase() + formData.budget.slice(1)}</strong>
                     </div>
-                    <div class="col-md-3">
-                        <small class="text-muted">Activities:</small>
-                        <br><strong>${formData.activities.join(', ')}</strong>
+                    <div class="col-md-2">
+                        <small class="text-muted">Cities:</small>
+                        <br><strong>${recommendedDestinations.length}</strong>
                     </div>
                 </div>
             </div>
             
-            <div class="row">
-                <div class="col-12">
-                    <h5 class="mb-3"><i class="fas fa-map-marker-alt me-2"></i>Recommended Destinations</h5>
-                    <div class="row">
-                        ${recommendedDestinations.map(dest => `
-                            <div class="col-md-6 mb-3">
-                                <div class="card">
-                                    <div class="card-body">
-                                        <h6 class="card-title">${dest.name}</h6>
-                                        <p class="card-text small">${dest.description}</p>
-                                        <div class="d-flex justify-content-between align-items-center">
-                                            <small class="text-muted">
-                                                <i class="fas fa-calendar me-1"></i>
-                                                ${dest.recommendedDays} days
-                                            </small>
-                                            <span class="badge bg-success">${dest.match}% match</span>
-                                        </div>
+            <div class="mb-4">
+                <h5 class="mb-3"><i class="fas fa-map-marker-alt me-2"></i>Recommended Itinerary</h5>
+                <div class="timeline-container">
+                    ${recommendedDestinations.map((dest, index) => `
+                        <div class="card mb-3">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <div>
+                                        <h6 class="card-title mb-1">
+                                            ${index + 1}. ${dest.name}, ${dest.state}
+                                        </h6>
+                                        <p class="text-muted small mb-2">
+                                            <i class="fas fa-clock me-1"></i>${dest.recommendedDays} days recommended
+                                            <span class="mx-2">•</span>
+                                            <i class="fas fa-thermometer-half me-1"></i>${dest.temperature}
+                                            <span class="mx-2">•</span>
+                                            <i class="${dest.weatherIcon} me-1"></i>${dest.weather}
+                                        </p>
                                     </div>
+                                    <span class="badge bg-success">${dest.matchScore}% Match</span>
+                                </div>
+                                <p class="card-text small mb-2">${dest.description}</p>
+                                <div class="d-flex flex-wrap gap-2 mb-2">
+                                    ${dest.activities.map(activity => 
+                                        `<span class="badge bg-light text-dark">${activity}</span>`
+                                    ).join('')}
                                 </div>
                             </div>
-                        `).join('')}
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+            
+            <div class="travel-tips bg-light p-3 rounded mb-4">
+                <h6 class="mb-3"><i class="fas fa-lightbulb me-2"></i>Travel Tips</h6>
+                <div class="row">
+                    <div class="col-md-6">
+                        <ul class="list-unstyled mb-0">
+                            <li class="mb-2">
+                                <i class="fas fa-calendar-check text-success me-2"></i>
+                                Best time to visit: ${this.getSeasonInfo(formData.startDate)}
+                            </li>
+                            <li class="mb-2">
+                                <i class="fas fa-plane text-success me-2"></i>
+                                Consider flying between cities to save time
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <ul class="list-unstyled mb-0">
+                            <li class="mb-2">
+                                <i class="fas fa-umbrella-beach text-success me-2"></i>
+                                Pack for ${recommendedDestinations[0]?.weather.toLowerCase()} weather
+                            </li>
+                            <li class="mb-2">
+                                <i class="fas fa-dollar-sign text-success me-2"></i>
+                                Estimated daily budget: ${this.getBudgetEstimate(formData.budget)}
+                            </li>
+                        </ul>
                     </div>
                 </div>
             </div>
-            
-            <div class="mt-4">
-                <div class="alert alert-info">
-                    <i class="fas fa-info-circle me-2"></i>
-                    <strong>Weather Tip:</strong> Your selected dates fall during ${this.getSeasonInfo(formData.startDate)} - perfect for most outdoor activities!
-                </div>
-            </div>
-            
+
             <div class="text-center mt-4">
                 <button class="btn btn-primary me-2" onclick="window.print()">
                     <i class="fas fa-print me-2"></i>Print Itinerary
@@ -677,203 +898,208 @@ class BrazilTravelApp {
         `;
     }
 
-    getRecommendedDestinations(selectedActivities) {
-        const activityMap = {
-            'Beach': ['Rio de Janeiro', 'Florianópolis', 'Salvador'],
-            'Historic': ['Salvador', 'Brasília', 'São Paulo'],
-            'Adventure': ['Manaus', 'Florianópolis'],
-            'Nightlife': ['Rio de Janeiro', 'São Paulo']
-        };
-        
-        const destinationScores = {};
-        
-        selectedActivities.forEach(activity => {
-            if (activityMap[activity]) {
-                activityMap[activity].forEach(dest => {
-                    destinationScores[dest] = (destinationScores[dest] || 0) + 1;
-                });
-            }
-        });
-        
-        // Convert to array and sort by score
-        const recommendations = Object.entries(destinationScores)
-            .map(([name, score]) => {
-                const dest = this.destinations.find(d => d.name === name);
-                return {
-                    name,
-                    description: dest ? dest.description : 'Amazing Brazilian destination',
-                    match: Math.min(95, 70 + (score * 10)),
-                    recommendedDays: score > 2 ? 4 : score > 1 ? 3 : 2
-                };
-            })
-            .sort((a, b) => b.match - a.match)
-            .slice(0, 4);
-        
-        return recommendations;
-    }
+    renderSmartItinerary(formData, itinerary) {
+        const startDate = new Date(formData.startDate);
+        const endDate = new Date(formData.endDate);
 
-    getSeasonInfo(startDate) {
-        const month = new Date(startDate).getMonth();
-        
-        if (month >= 5 && month <= 8) {
-            return "dry season (winter)";
-        } else if (month >= 11 || month <= 2) {
-            return "wet season (summer)";
-        } else {
-            return "transition season";
-        }
-    }
-
-    async loadBrazilianHolidays() {
-        const holidaysWidget = document.getElementById('holidaysWidget');
-        
-        if (!holidaysWidget) return;
-
-        try {
-            if (this.brazilAPI) {
-                // Use real Brazil API
-                const upcomingHolidays = await this.brazilAPI.getUpcomingHolidays(6);
+        return `
+            <!-- Trip Overview Header -->
+            <div class="trip-header mb-4 p-4 bg-light rounded">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h4 class="text-primary mb-0">
+                        <i class="fas fa-map-marked-alt me-2"></i>${formData.tripName}
+                    </h4>
+                    <span class="badge bg-success fs-6">
+                        <i class="fas fa-star me-1"></i>${itinerary.overview.averageMatch}% Match
+                    </span>
+                </div>
                 
-                if (upcomingHolidays.length === 0) {
-                    holidaysWidget.innerHTML = `
-                        <div class="alert alert-info">
-                            <i class="fas fa-info-circle me-2"></i>
-                            No upcoming holidays in the next 6 months
+                <div class="row g-3 mb-3">
+                    <div class="col-md-2">
+                        <small class="text-muted d-block">Duration</small>
+                        <strong>${formData.duration} days</strong>
+                    </div>
+                    <div class="col-md-3">
+                        <small class="text-muted d-block">Dates</small>
+                        <strong>${startDate.toLocaleDateString('en-US', { dateStyle: 'medium' })} - ${endDate.toLocaleDateString('en-US', { dateStyle: 'medium' })}</strong>
+                    </div>
+                    <div class="col-md-2">
+                        <small class="text-muted d-block">Cities</small>
+                        <strong>${itinerary.overview.totalCities}</strong>
+                    </div>
+                    <div class="col-md-2">
+                        <small class="text-muted d-block">Distance</small>
+                        <strong>${itinerary.overview.totalDistance} km</strong>
+                    </div>
+                    <div class="col-md-3">
+                        <small class="text-muted d-block">Transport</small>
+                        <strong>${itinerary.overview.bestTransport}</strong>
+                    </div>
+                </div>
+
+                <!-- Budget Overview -->
+                <div class="budget-overview p-3 bg-white rounded border">
+                    <h6 class="mb-2"><i class="fas fa-dollar-sign me-2"></i>Budget Estimate</h6>
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="text-center">
+                                <div class="h4 text-success mb-1">$${itinerary.budget.totalPerDay}</div>
+                                <small class="text-muted">Per Day</small>
+                            </div>
                         </div>
-                    `;
-                    return;
-                }
+                        <div class="col-md-4">
+                            <div class="text-center">
+                                <div class="h4 text-primary mb-1">$${itinerary.budget.totalTrip}</div>
+                                <small class="text-muted">Total Trip</small>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="text-center">
+                                <div class="h6 text-info mb-1">${formData.budget.charAt(0).toUpperCase() + formData.budget.slice(1)}</div>
+                                <small class="text-muted">Budget Level</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
-                let holidaysHTML = '<div class="row">';
-                
-                upcomingHolidays.slice(0, 4).forEach(holiday => {
-                    const formatted = this.brazilAPI.formatHolidayDisplay(holiday);
-                    const holidayDate = new Date(holiday.date);
-                    const month = holidayDate.toLocaleDateString('en-US', { month: 'short' });
-                    const day = holidayDate.getDate();
-                    
-                    holidaysHTML += `
-                        <div class="col-lg-3 col-md-6 mb-3">
-                            <div class="card bg-light text-dark">
-                                <div class="card-body text-center">
-                                    <div class="d-flex align-items-center justify-content-center mb-2">
-                                        <div class="me-3">
-                                            <div class="bg-warning text-dark rounded p-2" style="min-width: 60px;">
-                                                <div class="fw-bold">${month}</div>
-                                                <div class="h4 mb-0">${day}</div>
-                                            </div>
-                                        </div>
-                                        <div class="text-start">
-                                            <h6 class="card-title mb-1">${holiday.name}</h6>
-                                            <small class="text-muted">${formatted.dayOfWeek}</small>
+            <!-- Warnings and Recommendations -->
+            ${this.renderAlertsSection(itinerary.warnings, itinerary.recommendations)}
+
+            <!-- Daily Schedule -->
+            <div class="daily-schedule mb-4">
+                <h5 class="mb-3"><i class="fas fa-calendar-alt me-2"></i>Daily Itinerary</h5>
+                <div class="timeline">
+                    ${itinerary.dailySchedule.map(day => `
+                        <div class="timeline-item card mb-3">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <div>
+                                        <h6 class="card-title mb-1">
+                                            <span class="badge bg-primary me-2">Day ${day.day}</span>
+                                            ${day.city}
+                                        </h6>
+                                        <div class="weather-info">
+                                            <small class="text-muted">
+                                                <i class="${day.weather.icon} me-1"></i>
+                                                ${day.weather.temperature} • ${day.weather.condition}
+                                            </small>
                                         </div>
                                     </div>
                                 </div>
+                                
+                                <div class="activities mb-3">
+                                    <strong class="small">Planned Activities:</strong>
+                                    <ul class="mt-1 mb-0">
+                                        ${day.activities.map(activity => `<li class="small">${activity}</li>`).join('')}
+                                    </ul>
+                                </div>
+                                
+                                ${day.tips.length > 0 ? `
+                                    <div class="tips">
+                                        <strong class="small text-info">💡 Tips:</strong>
+                                        <ul class="mt-1 mb-0">
+                                            ${day.tips.map(tip => `<li class="small text-muted">${tip}</li>`).join('')}
+                                        </ul>
+                                    </div>
+                                ` : ''}
                             </div>
                         </div>
-                    `;
-                });
-                
-                holidaysHTML += '</div>';
-                
-                if (upcomingHolidays.length > 4) {
-                    holidaysHTML += `
-                        <div class="text-center mt-3">
-                            <small class="text-white-50">
-                                <i class="fas fa-plus me-1"></i>
-                                ${upcomingHolidays.length - 4} more holidays this year
-                            </small>
-                        </div>
-                    `;
-                }
-                
-                holidaysWidget.innerHTML = holidaysHTML;
-                console.log('✅ Brazilian holidays loaded successfully');
-                
-            } else {
-                // Fallback to static data
-                this.loadStaticHolidaysData(holidaysWidget);
-            }
-        } catch (error) {
-            console.error('Brazil holidays API error:', error);
-            this.loadStaticHolidaysData(holidaysWidget);
-        }
-    }
+                    `).join('')}
+                </div>
+            </div>
 
-    loadStaticHolidaysData(holidaysWidget) {
-        // Fallback static holidays data
-        setTimeout(() => {
-            holidaysWidget.innerHTML = `
+            <!-- Budget Breakdown -->
+            <div class="budget-breakdown mb-4">
+                <h5 class="mb-3"><i class="fas fa-chart-pie me-2"></i>Budget Breakdown</h5>
                 <div class="row">
-                    <div class="col-lg-3 col-md-6 mb-3">
-                        <div class="card bg-light text-dark">
-                            <div class="card-body text-center">
-                                <div class="d-flex align-items-center justify-content-center mb-2">
-                                    <div class="me-3">
-                                        <div class="bg-warning text-dark rounded p-2" style="min-width: 60px;">
-                                            <div class="fw-bold">Sep</div>
-                                            <div class="h4 mb-0">7</div>
-                                        </div>
+                    ${itinerary.budget.breakdown.map(item => `
+                        <div class="col-md-6 col-lg-4 mb-3">
+                            <div class="card h-100">
+                                <div class="card-body text-center">
+                                    <h6 class="card-title">${item.category}</h6>
+                                    <div class="h5 text-primary">$${item.amount}</div>
+                                    <div class="progress" style="height: 6px;">
+                                        <div class="progress-bar" style="width: ${item.percentage}%"></div>
                                     </div>
-                                    <div class="text-start">
-                                        <h6 class="card-title mb-1">Independence Day</h6>
-                                        <small class="text-muted">Sunday</small>
-                                    </div>
+                                    <small class="text-muted">${item.percentage}% of budget</small>
                                 </div>
                             </div>
                         </div>
-                    </div>
-                    <div class="col-lg-3 col-md-6 mb-3">
-                        <div class="card bg-light text-dark">
-                            <div class="card-body text-center">
-                                <div class="d-flex align-items-center justify-content-center mb-2">
-                                    <div class="me-3">
-                                        <div class="bg-warning text-dark rounded p-2" style="min-width: 60px;">
-                                            <div class="fw-bold">Oct</div>
-                                            <div class="h4 mb-0">12</div>
-                                        </div>
-                                    </div>
-                                    <div class="text-start">
-                                        <h6 class="card-title mb-1">Our Lady of Aparecida</h6>
-                                        <small class="text-muted">Sunday</small>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-lg-3 col-md-6 mb-3">
-                        <div class="card bg-light text-dark">
-                            <div class="card-body text-center">
-                                <div class="d-flex align-items-center justify-content-center mb-2">
-                                    <div class="me-3">
-                                        <div class="bg-warning text-dark rounded p-2" style="min-width: 60px;">
-                                            <div class="fw-bold">Dec</div>
-                                            <div class="h4 mb-0">25</div>
-                                        </div>
-                                    </div>
-                                    <div class="text-start">
-                                        <h6 class="card-title mb-1">Christmas</h6>
-                                        <small class="text-muted">Wednesday</small>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                    `).join('')}
                 </div>
-                <div class="text-center mt-3">
-                    <small class="text-white-50">
-                        <i class="fas fa-info-circle me-1"></i>
-                        Demo holiday data - API not connected
-                    </small>
-                </div>
-            `;
-        }, 1500);
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="text-center mt-4">
+                <button class="btn btn-primary me-2" onclick="window.print()">
+                    <i class="fas fa-print me-2"></i>Print Itinerary
+                </button>
+                <button class="btn btn-outline-primary me-2" onclick="brazilTravelApp.exportTripPDF('${formData.tripName}')">
+                    <i class="fas fa-file-pdf me-2"></i>Export PDF
+                </button>
+                <button class="btn btn-outline-secondary" onclick="brazilTravelApp.shareTrip('${formData.tripName}')">
+                    <i class="fas fa-share me-2"></i>Share Trip
+                </button>
+            </div>
+        `;
+    }
+
+    renderAlertsSection(warnings, recommendations) {
+        if (warnings.length === 0 && recommendations.length === 0) return '';
+
+        return `
+            <div class="alerts-section mb-4">
+                ${warnings.length > 0 ? `
+                    <div class="warnings mb-3">
+                        <h6 class="text-warning"><i class="fas fa-exclamation-triangle me-2"></i>Travel Warnings</h6>
+                        ${warnings.map(warning => `
+                            <div class="alert alert-warning alert-sm">
+                                <small><strong>${warning.type.toUpperCase()}:</strong> ${warning.message}</small>
+                            </div>
+                        `).join('')}
+                    </div>
+                ` : ''}
+                
+                ${recommendations.length > 0 ? `
+                    <div class="recommendations">
+                        <h6 class="text-info"><i class="fas fa-lightbulb me-2"></i>Smart Recommendations</h6>
+                        ${recommendations.map(rec => `
+                            <div class="alert alert-info alert-sm">
+                                <small><span class="me-2">${rec.icon}</span><strong>${rec.title}:</strong> ${rec.message}</small>
+                            </div>
+                        `).join('')}
+                    </div>
+                ` : ''}
+            </div>
+        `;
+    }
+
+    // Export and sharing functions (placeholder implementations)
+    exportTripPDF(tripName) {
+        this.showAlert('PDF export feature coming soon! Use the print button for now.', 'info');
+    }
+
+    shareTrip(tripName) {
+        if (navigator.share) {
+            navigator.share({
+                title: `My Brazil Trip: ${tripName}`,
+                text: 'Check out my Brazil travel itinerary!',
+                url: window.location.href
+            });
+        } else {
+            // Fallback for browsers without native sharing
+            const url = window.location.href;
+            navigator.clipboard.writeText(url).then(() => {
+                this.showAlert('Trip URL copied to clipboard!', 'success');
+            });
+        }
     }
 }
 
 // Initialize the application when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
-    new BrazilTravelApp();
+    window.brazilTravelApp = new BrazilTravelApp();
 });
 
 window.BrazilTravelApp = BrazilTravelApp;
