@@ -229,6 +229,58 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- Seasonal Activity Recommendations -->
+                <div class="card shadow-custom rounded-custom mb-4">
+                    <div class="card-header bg-success text-white">
+                        <h6 class="mb-0"><i class="fas fa-seedling me-2"></i>Seasonal Activity Recommendations</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-2">
+                            <label for="activityRegion" class="form-label">Region</label>
+                            <select id="activityRegion" class="form-select">
+                                <option value="Southeast">Southeast</option>
+                                <option value="Northeast">Northeast</option>
+                                <option value="North">North</option>
+                                <option value="South">South</option>
+                                <option value="Center-West">Center-West</option>
+                            </select>
+                        </div>
+                        <div class="mb-2">
+                            <label for="activitySeason" class="form-label">Season</label>
+                            <select id="activitySeason" class="form-select">
+                                <option value="summer">Summer</option>
+                                <option value="autumn">Autumn</option>
+                                <option value="winter">Winter</option>
+                                <option value="spring">Spring</option>
+                            </select>
+                        </div>
+                        <button class="btn btn-success mb-3" onclick="showSeasonalActivities()">Show Recommendations</button>
+                        <div id="seasonalActivities"></div>
+                    </div>
+                </div>
+
+                <!-- Regional Holiday Calendar -->
+                <div class="card shadow-custom rounded-custom mb-4">
+                    <div class="card-header bg-primary text-white">
+                        <h6 class="mb-0"><i class="fas fa-calendar-alt me-2"></i>Regional Holiday Calendar</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-2">
+                            <label for="holidayState" class="form-label">State</label>
+                            <select id="holidayState" class="form-select">
+                                <option value="RJ">Rio de Janeiro</option>
+                                <option value="SP">São Paulo</option>
+                                <option value="BA">Bahia</option>
+                                <option value="MG">Minas Gerais</option>
+                                <option value="RS">Rio Grande do Sul</option>
+                                <option value="SC">Santa Catarina</option>
+                            </select>
+                        </div>
+                        <button class="btn btn-primary mb-3" onclick="showRegionalHolidays()">Show Holidays</button>
+                        <div id="regionalHolidays"></div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -264,6 +316,31 @@
     <script src="../assets/js/modules/weather-comparison.js"></script>
     <script src="../assets/js/modules/travel-dates.js"></script>
     <script src="../assets/js/modules/weather-alerts.js"></script>
+    <script src="../assets/js/modules/seasonal-activities.js"></script>
+    <script src="../assets/js/modules/regional-holidays.js"></script>
     <script src="../assets/js/main.js"></script>
+    <script>
+        function showSeasonalActivities() {
+            const region = document.getElementById('activityRegion').value;
+            const season = document.getElementById('activitySeason').value;
+            const recommender = new SeasonalActivityRecommendations();
+            const activities = recommender.activityDatabase[region] && recommender.activityDatabase[region][season]
+                ? recommender.activityDatabase[region][season].activities
+                : [];
+            let html = '';
+            if (activities.length) {
+                html = '<ul class="list-group">' + activities.map(a => `<li class="list-group-item"><strong>${a.name}</strong> <span class="badge bg-success ms-2">${a.rating}</span><br><small>${a.description}</small></li>`).join('') + '</ul>';
+            } else {
+                html = '<p class="text-muted">No activities found for this region/season.</p>';
+            }
+            document.getElementById('seasonalActivities').innerHTML = html;
+        }
+        function showRegionalHolidays() {
+            const state = document.getElementById('holidayState').value;
+            const calendar = new RegionalHolidayCalendar();
+            const holidays = calendar.regionalHolidays[state] ? calendar.regionalHolidays[state].holidays : [];
+            calendar.renderStateHolidays('regionalHolidays', holidays);
+        }
+    </script>
 </body>
 </html>

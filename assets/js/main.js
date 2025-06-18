@@ -15,11 +15,12 @@ class BrazilTravelApp {
         this.maxDestinations = 5; // Maximum number of destinations that can be added
         
         this.init();
-    }
-
-    async init() {
+    }    async init() {
         console.log('🇧🇷 Brazil Travel App initializing...');
         this.updateNavigationCounter();
+        
+        // Initialize APIs first
+        this.initializeAPIs();
         
         // Initialize modules
         if (this.weatherAPI) {
@@ -44,11 +45,26 @@ class BrazilTravelApp {
         } catch (error) {
             console.log('⚠️ Some APIs failed to load, using fallback data');
         }
-        
-        // Initialize page-specific features
+          // Initialize page-specific features
         this.initializePage();
         
         console.log('✅ Brazil Travel App ready!');
+    }
+
+    initializePage() {
+        // Initialize event listeners
+        this.initEventListeners();
+        
+        // Initialize page-specific features based on current page
+        const currentPage = window.location.pathname;
+        
+        if (currentPage.includes('planner')) {
+            this.initPlannerPage();
+        } else if (currentPage.includes('destinations')) {
+            this.initDestinationsPage();
+        } else if (currentPage.includes('index') || currentPage === '/') {
+            this.initHomePage();
+        }
     }
 
     initializeAPIs() {
@@ -1094,6 +1110,60 @@ class BrazilTravelApp {
                 this.showAlert('Trip URL copied to clipboard!', 'success');
             });
         }
+    }
+
+    initHomePage() {
+        // Initialize home page specific features
+        console.log('🏠 Initializing home page');
+        
+        // Initialize destination navigation counter
+        this.updateNavigationCounter();
+    }
+
+    initDestinationsPage() {
+        // Initialize destinations page specific features
+        console.log('🗺️ Initializing destinations page');
+        
+        // Update navigation counter
+        this.updateNavigationCounter();
+    }
+
+    initPlannerPage() {
+        // Initialize planner page specific features
+        console.log('📅 Initializing planner page');
+        
+        // Initialize trip form if it exists
+        const tripForm = document.getElementById('tripPlannerForm');
+        if (tripForm) {
+            tripForm.addEventListener('submit', this.handleTripSubmission.bind(this));
+        }
+        
+        // Initialize date inputs
+        const startDateInput = document.getElementById('startDate');
+        const endDateInput = document.getElementById('endDate');
+        const durationSelect = document.getElementById('tripDuration');
+        
+        if (startDateInput && endDateInput && durationSelect) {
+            // Auto-calculate end date when start date or duration changes
+            startDateInput.addEventListener('change', this.updateEndDate.bind(this));
+            durationSelect.addEventListener('change', this.updateEndDate.bind(this));
+            
+            // Set minimum date to today
+            const today = new Date().toISOString().split('T')[0];
+            startDateInput.min = today;
+        }
+    }
+
+    updateNavigationCounter() {
+        // Update any navigation counters (e.g., selected destinations count)
+        const count = this.selectedDestinations ? this.selectedDestinations.size : 0;
+        
+        // Update any navigation badges or counters
+        const counterElements = document.querySelectorAll('.navigation-counter');
+        counterElements.forEach(el => {
+            el.textContent = count;
+            el.style.display = count > 0 ? 'inline' : 'none';
+        });
     }
 }
 

@@ -16,12 +16,11 @@ async function moveCompletedCards() {
     try {
         // Get all cards on the board
         const cards = await trello.getCardsOnBoard(process.env.TRELLO_BOARD_ID);
-        
-        // Find the cards we completed by name
+          // Find the cards we completed by name
         const completedCardNames = [
-            'Build Regional Weather Comparison',
-            'Implement Weather Alert System (basic)',
-            'Create Best Travel Dates Calculator'
+            'Implement Seasonal Activity Recommendations',
+            'Implement Regional Holiday Calendar', 
+            'Create Climate Zone Information Module'
         ];
 
         const completedCards = [];
