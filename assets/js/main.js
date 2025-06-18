@@ -21,8 +21,7 @@ class BrazilTravelApp {
         
         // Initialize APIs first
         this.initializeAPIs();
-        
-        // Initialize modules
+          // Initialize modules
         if (this.weatherAPI) {
             console.log('🌤️ Weather API initialized');
             this.initWeatherAlerts();
@@ -37,6 +36,9 @@ class BrazilTravelApp {
         if (this.countriesAPI) {
             console.log('🌍 Countries API initialized');
         }
+
+        // Initialize enhanced animations
+        this.initAnimations();
         
         // Load initial data
         try {
@@ -130,7 +132,7 @@ class BrazilTravelApp {
         });
     }    initWeatherAlerts() {
         // Initialize Weather Alert System if available
-        if (window.WeatherAlertSystem && this.weatherAPI) {
+        if (window.WeatherAlertSystem) {
             this.weatherAlertSystem = new WeatherAlertSystem(this.weatherAPI);
             console.log('🚨 Weather Alert System initialized');
         } else {
@@ -150,6 +152,24 @@ class BrazilTravelApp {
             this.travelDatesCalculator = new TravelDatesCalculator(this.weatherAPI, window.HolidayAPI);
             console.log('📅 Travel Dates Calculator initialized');
         }
+    }
+
+    initAnimations() {
+        // Enhanced animations are initialized automatically via animation-controller.js
+        // But we can add custom animations here for specific app features
+        
+        // Add smooth transitions to destination cards
+        const destinationCards = document.querySelectorAll('.destination-card');
+        destinationCards.forEach((card, index) => {
+            card.style.animationDelay = `${index * 0.1}s`;
+            card.classList.add('fadeInUp');
+        });
+
+        // Add loading animation to weather widgets
+        const weatherWidgets = document.querySelectorAll('.weather-widget');
+        weatherWidgets.forEach(widget => {
+            widget.classList.add('loading-pulse');
+        });
     }
 
     async loadUpcomingHolidays() {

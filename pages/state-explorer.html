@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>State Explorer - Brazil Travel Planner</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="../assets/css/main.css">
+    <link rel="stylesheet" href="../assets/css/responsive.css">
+    <link rel="stylesheet" href="../assets/css/animations.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary sticky-top">
+        <div class="container">
+            <a class="navbar-brand" href="../index.html">
+                <i class="fas fa-map-marked-alt me-2"></i>
+                Brazil Travel Planner
+            </a>
+            
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="../index.html">Home</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="destinations.html">Destinations</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="planner.html">Planner</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="weather-comparison.html">Weather Compare</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="climate-zones.html">Climate Zones</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="state-explorer.html">State Explorer</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="about.html">About</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="container mt-4">
+        <div class="row">
+            <div class="col-12">
+                <h1><i class="fas fa-map me-2"></i>Brazilian State Explorer</h1>
+                <p class="lead">Discover detailed information about all 26 Brazilian states and the Federal District</p>
+                
+                <!-- Quick Stats -->
+                <div class="row mb-4">
+                    <div class="col-md-3 col-6">
+                        <div class="card text-center h-100">
+                            <div class="card-body">
+                                <i class="fas fa-map-marked-alt fa-2x text-primary mb-2"></i>
+                                <h3 class="mb-1">27</h3>
+                                <small class="text-muted">States + DF</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3 col-6">
+                        <div class="card text-center h-100">
+                            <div class="card-body">
+                                <i class="fas fa-globe-americas fa-2x text-success mb-2"></i>
+                                <h3 class="mb-1">5</h3>
+                                <small class="text-muted">Regions</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3 col-6">
+                        <div class="card text-center h-100">
+                            <div class="card-body">
+                                <i class="fas fa-city fa-2x text-warning mb-2"></i>
+                                <h3 class="mb-1">5,570</h3>
+                                <small class="text-muted">Municipalities</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3 col-6">
+                        <div class="card text-center h-100">
+                            <div class="card-body">
+                                <i class="fas fa-users fa-2x text-info mb-2"></i>
+                                <h3 class="mb-1">215M</h3>
+                                <small class="text-muted">Population</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Search Bar -->
+                <div class="card shadow-custom rounded-custom mb-4">
+                    <div class="card-body">
+                        <div class="row align-items-center">
+                            <div class="col-md-8">
+                                <div class="input-group">
+                                    <span class="input-group-text">
+                                        <i class="fas fa-search"></i>
+                                    </span>
+                                    <input type="text" 
+                                           class="form-control" 
+                                           id="stateSearch" 
+                                           placeholder="Search states by name, capital, or attractions..."
+                                           onkeyup="searchStates()">
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <select class="form-select" id="regionFilter" onchange="filterByRegion()">
+                                    <option value="">All Regions</option>
+                                    <option value="Norte">Norte (North)</option>
+                                    <option value="Nordeste">Nordeste (Northeast)</option>
+                                    <option value="Centro-Oeste">Centro-Oeste (Center-West)</option>
+                                    <option value="Sudeste">Sudeste (Southeast)</option>
+                                    <option value="Sul">Sul (South)</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- State Explorer -->
+                <div class="card shadow-custom rounded-custom">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0"><i class="fas fa-compass me-2"></i>Explore Brazilian States</h5>
+                    </div>
+                    <div class="card-body p-0">
+                        <div id="stateExplorerContainer">
+                            <!-- State explorer will be rendered here -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Regional Information -->
+                <div class="row mt-4">
+                    <div class="col-md-6">
+                        <div class="card shadow-custom rounded-custom">
+                            <div class="card-header bg-info text-white">
+                                <h6 class="mb-0"><i class="fas fa-lightbulb me-2"></i>Travel Tips</h6>
+                            </div>
+                            <div class="card-body">
+                                <ul class="list-unstyled mb-0">
+                                    <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i>Each region has distinct climate patterns</li>
+                                    <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i>Consider regional festivals and events</li>
+                                    <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i>Some states require longer travel times</li>
+                                    <li class="mb-0"><i class="fas fa-check-circle text-success me-2"></i>Learn basic Portuguese phrases for better experience</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card shadow-custom rounded-custom">
+                            <div class="card-header bg-warning text-dark">
+                                <h6 class="mb-0"><i class="fas fa-info-circle me-2"></i>Did You Know?</h6>
+                            </div>
+                            <div class="card-body">
+                                <ul class="list-unstyled mb-0">
+                                    <li class="mb-2"><strong>🌟 Largest State:</strong> Amazonas (1.5M km²)</li>
+                                    <li class="mb-2"><strong>🏙️ Most Populous:</strong> São Paulo (46M people)</li>
+                                    <li class="mb-2"><strong>🌴 Amazon Region:</strong> Covers 60% of Brazil</li>
+                                    <li class="mb-0"><strong>🏖️ Coastline:</strong> 7,491 km along Atlantic Ocean</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mobile Bottom Navigation -->
+    <nav class="bottom-nav d-lg-none">
+        <a href="../index.html" class="bottom-nav-item">
+            <i class="fas fa-home"></i>
+            <span>Home</span>
+        </a>
+        <a href="destinations.html" class="bottom-nav-item">
+            <i class="fas fa-map-marker-alt"></i>
+            <span>Destinations</span>
+        </a>
+        <a href="planner.html" class="bottom-nav-item">
+            <i class="fas fa-calendar"></i>
+            <span>Planner</span>
+        </a>
+        <a href="weather-comparison.html" class="bottom-nav-item">
+            <i class="fas fa-cloud-sun"></i>
+            <span>Weather</span>
+        </a>
+        <a href="climate-zones.html" class="bottom-nav-item">
+            <i class="fas fa-globe-americas"></i>
+            <span>Climate</span>
+        </a>
+        <a href="state-explorer.html" class="bottom-nav-item active">
+            <i class="fas fa-map"></i>
+            <span>States</span>
+        </a>
+        <a href="about.html" class="bottom-nav-item">
+            <i class="fas fa-user"></i>
+            <span>About</span>
+        </a>
+    </nav>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="../assets/js/modules/config.js"></script>
+    <script src="../assets/js/modules/utils.js"></script>
+    <script src="../assets/js/modules/brazil.js"></script>
+    <script src="../assets/js/modules/state-explorer.js"></script>
+    <script src="../assets/js/modules/animation-controller.js"></script>
+
+    <script>
+        let stateExplorer;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            // Initialize state explorer
+            if (window.BrazilianStateExplorer) {
+                stateExplorer = new BrazilianStateExplorer();
+                stateExplorer.renderStateExplorer('stateExplorerContainer');
+                console.log('🗺️ State Explorer initialized');
+            }
+        });
+
+        function searchStates() {
+            const query = document.getElementById('stateSearch').value;
+            const regionFilter = document.getElementById('regionFilter').value;
+            
+            if (query.length > 0) {
+                const results = stateExplorer.searchStates(query);
+                displaySearchResults(results);
+            } else if (regionFilter) {
+                filterByRegion();
+            } else {
+                // Reset to full view
+                stateExplorer.renderStateExplorer('stateExplorerContainer');
+            }
+        }
+
+        function filterByRegion() {
+            const region = document.getElementById('regionFilter').value;
+            const searchQuery = document.getElementById('stateSearch').value;
+            
+            if (region) {
+                const results = stateExplorer.getStatesByRegion(region);
+                displaySearchResults(results);
+            } else if (searchQuery.length === 0) {
+                // Reset to full view
+                stateExplorer.renderStateExplorer('stateExplorerContainer');
+            }
+        }
+
+        function displaySearchResults(results) {
+            const container = document.getElementById('stateExplorerContainer');
+            
+            if (results.length === 0) {
+                container.innerHTML = `
+                    <div class="p-4 text-center text-muted">
+                        <i class="fas fa-search fa-3x mb-3"></i>
+                        <h5>No states found</h5>
+                        <p>Try adjusting your search criteria</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = `
+                <div class="search-results p-3">
+                    <div class="mb-3">
+                        <small class="text-muted">${results.length} state(s) found</small>
+                        <button class="btn btn-sm btn-outline-secondary ms-2" onclick="clearSearch()">
+                            <i class="fas fa-times me-1"></i>Clear
+                        </button>
+                    </div>
+                    <div class="row">
+                        ${results.map(state => `
+                            <div class="col-md-6 col-lg-4 mb-3">
+                                <div class="card h-100 cursor-pointer card-hover-effect" onclick="stateExplorer.selectState('${state.code}'); showStateInModal('${state.code}')">
+                                    <div class="card-body">
+                                        <div class="d-flex align-items-center mb-2">
+                                            <span class="state-flag me-3" style="font-size: 2rem;">${state.flag}</span>
+                                            <div>
+                                                <h6 class="card-title mb-0">${state.name}</h6>
+                                                <small class="text-muted">${state.capital}</small>
+                                            </div>
+                                        </div>
+                                        <div class="mb-2">
+                                            <span class="badge" style="background-color: ${state.color}; color: white;">${state.region}</span>
+                                        </div>
+                                        <p class="card-text small">${state.culture.substring(0, 80)}...</p>
+                                    </div>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+        }
+
+        function clearSearch() {
+            document.getElementById('stateSearch').value = '';
+            document.getElementById('regionFilter').value = '';
+            stateExplorer.renderStateExplorer('stateExplorerContainer');
+        }
+
+        function showStateInModal(stateCode) {
+            // This could open a modal with detailed state information
+            // For now, we'll just scroll to show the state details
+            setTimeout(() => {
+                const detailsElement = document.getElementById('stateDetails');
+                if (detailsElement) {
+                    detailsElement.scrollIntoView({ behavior: 'smooth' });
+                }
+            }, 100);
+        }
+    </script>
+
+    <style>
+        .state-item:hover {
+            background-color: rgba(13, 110, 253, 0.05) !important;
+            cursor: pointer;
+        }
+        
+        .state-item.active {
+            background-color: rgba(13, 110, 253, 0.1) !important;
+            border-left: 4px solid #0d6efd !important;
+        }
+        
+        .state-flag-large {
+            filter: drop-shadow(2px 2px 4px rgba(0,0,0,0.3));
+        }
+        
+        .region-section .state-list {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        .cursor-pointer {
+            cursor: pointer;
+        }
+        
+        .search-results .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+    </style>
+</body>
+</html>

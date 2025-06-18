@@ -430,99 +430,243 @@
 }
 
 /* ==================================================
-   UTILITY ANIMATION CLASSES
+   ENHANCED UI ANIMATIONS (June 18, 2025 Update)
    ================================================== */
 
-/* Animation Utilities */
-.animate-fadeIn { animation: fadeIn var(--animation-speed-normal) var(--animation-easing); }
-.animate-slideInLeft { animation: slideInLeft var(--animation-speed-normal) var(--animation-easing); }
-.animate-slideInRight { animation: slideInRight var(--animation-speed-normal) var(--animation-easing); }
-.animate-scaleIn { animation: scaleIn var(--animation-speed-normal) var(--animation-easing); }
-.animate-bounceIn { animation: bounceIn var(--animation-speed-slow) var(--animation-bounce); }
-
-/* Animation Delays */
-.animate-delay-1 { animation-delay: 0.1s; }
-.animate-delay-2 { animation-delay: 0.2s; }
-.animate-delay-3 { animation-delay: 0.3s; }
-.animate-delay-4 { animation-delay: 0.4s; }
-.animate-delay-5 { animation-delay: 0.5s; }
-
-/* Hover Utilities */
-.hover-lift {
-    transition: transform var(--animation-speed-normal) var(--animation-easing);
-}
-.hover-lift:hover {
-    transform: translateY(-5px);
+/* Smooth Page Loading Animation */
+.page-loader {
+    animation: fadeIn var(--animation-speed-slow) var(--animation-easing);
 }
 
-.hover-scale {
-    transition: transform var(--animation-speed-normal) var(--animation-easing);
-}
-.hover-scale:hover {
-    transform: scale(1.05);
+/* Enhanced Button Animations */
+.btn {
+    transition: all var(--animation-speed-fast) var(--animation-easing);
+    position: relative;
+    overflow: hidden;
 }
 
-/* ==================================================
-   MOBILE TOUCH FEEDBACK
-   ================================================== */
+.btn::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    transition: width var(--animation-speed-normal) var(--animation-easing),
+                height var(--animation-speed-normal) var(--animation-easing);
+}
 
-/* Touch Feedback for Mobile */
+.btn:hover::before {
+    width: 300px;
+    height: 300px;
+}
+
+.btn:active {
+    transform: scale(0.98);
+}
+
+/* Enhanced Form Input Animations */
+.form-control {
+    transition: all var(--animation-speed-normal) var(--animation-easing);
+    border: 2px solid transparent;
+}
+
+.form-control:focus {
+    border-color: var(--bs-primary);
+    box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+    transform: translateY(-2px);
+}
+
+/* Navigation Animations */
+.navbar {
+    transition: all var(--animation-speed-normal) var(--animation-easing);
+}
+
+.navbar.scrolled {
+    backdrop-filter: blur(10px);
+    background-color: rgba(13, 110, 253, 0.9) !important;
+    box-shadow: 0 2px 20px rgba(0, 0, 0, 0.1);
+}
+
+.nav-link {
+    position: relative;
+    transition: all var(--animation-speed-fast) var(--animation-easing);
+}
+
+.nav-link::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 50%;
+    width: 0;
+    height: 2px;
+    background: currentColor;
+    transition: all var(--animation-speed-normal) var(--animation-easing);
+    transform: translateX(-50%);
+}
+
+.nav-link:hover::after,
+.nav-link.active::after {
+    width: 100%;
+}
+
+/* Enhanced Card Hover Effects */
+.card-hover-effect {
+    transition: all var(--animation-speed-normal) var(--animation-easing);
+    cursor: pointer;
+}
+
+.card-hover-effect:hover {
+    transform: translateY(-8px) scale(1.02);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+}
+
+/* Loading Spinner Animations */
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+.loading-spinner {
+    animation: spin 1s linear infinite;
+}
+
+.loading-pulse {
+    animation: pulse 1.5s ease-in-out infinite;
+}
+
+/* Notification Animations */
+@keyframes slideInFromTop {
+    from {
+        opacity: 0;
+        transform: translateY(-100%);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes slideOutToTop {
+    from {
+        opacity: 1;
+        transform: translateY(0);
+    }
+    to {
+        opacity: 0;
+        transform: translateY(-100%);
+    }
+}
+
+.notification-enter {
+    animation: slideInFromTop var(--animation-speed-normal) var(--animation-easing);
+}
+
+.notification-exit {
+    animation: slideOutToTop var(--animation-speed-normal) var(--animation-easing);
+}
+
+/* Mobile Touch Feedback */
 @media (max-width: 768px) {
-    .btn:active {
-        transform: scale(0.95);
-        transition-duration: 0.1s;
+    .btn, .card, .nav-link {
+        transition: all var(--animation-speed-fast) ease-out;
     }
     
-    .card:active {
-        transform: scale(0.98);
-        transition-duration: 0.1s;
+    .btn:active, .card:active, .nav-link:active {
+        transform: scale(0.95);
+        background-color: rgba(0, 0, 0, 0.05);
     }
     
-    .bottom-nav-item:active {
-        background-color: rgba(0, 123, 255, 0.1);
-        transform: scale(0.95);
+    /* Touch ripple effect */
+    .ripple {
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .ripple::after {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 0;
+        height: 0;
+        background: rgba(255, 255, 255, 0.3);
+        border-radius: 50%;
+        transform: translate(-50%, -50%);
+        transition: width 0.6s, height 0.6s;
+    }
+    
+    .ripple:active::after {
+        width: 200px;
+        height: 200px;
     }
 }
 
-/* ==================================================
-   ACCESSIBILITY AND PERFORMANCE
-   ================================================== */
+/* Progressive Enhancement Animations */
+@media (prefers-reduced-motion: no-preference) {
+    /* Advanced animations for users who haven't disabled motion */
+    .card {
+        will-change: transform;
+    }
+    
+    .parallax-element {
+        transform: translateZ(0); /* Enable hardware acceleration */
+    }
+}
 
-/* Respect user's motion preferences */
 @media (prefers-reduced-motion: reduce) {
-    *,
-    *::before,
-    *::after {
+    /* Respect user's motion preferences */
+    *, *::before, *::after {
         animation-duration: 0.01ms !important;
         animation-iteration-count: 1 !important;
         transition-duration: 0.01ms !important;
-        scroll-behavior: auto !important;
     }
 }
 
-/* Hardware acceleration for better performance */
-.card,
-.btn,
-.nav-link,
-.weather-icon,
-.holiday-card {
-    will-change: transform;
-    transform: translateZ(0);
+/* ==================================================
+   UTILITY ANIMATION CLASSES
+   ================================================== */
+
+/* Animation delays for staggered effects */
+.delay-1 { animation-delay: 0.1s; }
+.delay-2 { animation-delay: 0.2s; }
+.delay-3 { animation-delay: 0.3s; }
+.delay-4 { animation-delay: 0.4s; }
+.delay-5 { animation-delay: 0.5s; }
+
+/* Animation speed utilities */
+.animate-fast { animation-duration: var(--animation-speed-fast); }
+.animate-normal { animation-duration: var(--animation-speed-normal); }
+.animate-slow { animation-duration: var(--animation-speed-slow); }
+
+/* Hover grow effect */
+.hover-grow {
+    transition: transform var(--animation-speed-normal) var(--animation-easing);
+}
+
+.hover-grow:hover {
+    transform: scale(1.05);
+}
+
+/* Shake animation for errors */
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+    20%, 40%, 60%, 80% { transform: translateX(5px); }
+}
+
+.shake {
+    animation: shake 0.6s ease-in-out;
 }
 
 /* ==================================================
-   ANIMATION ORCHESTRATION
+   END ENHANCED ANIMATIONS
    ================================================== */
-
-/* Sequential Animation for Page Elements */
-.animate-sequence > * {
-    opacity: 0;
-    animation: fadeIn var(--animation-speed-normal) var(--animation-easing) forwards;
-}
-
-.animate-sequence > *:nth-child(1) { animation-delay: 0.1s; }
-.animate-sequence > *:nth-child(2) { animation-delay: 0.2s; }
-.animate-sequence > *:nth-child(3) { animation-delay: 0.3s; }
-.animate-sequence > *:nth-child(4) { animation-delay: 0.4s; }
-.animate-sequence > *:nth-child(5) { animation-delay: 0.5s; }
-.animate-sequence > *:nth-child(6) { animation-delay: 0.6s; }

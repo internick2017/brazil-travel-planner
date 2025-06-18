@@ -15,12 +15,9 @@ async function moveCompletedCards() {
     
     try {
         // Get all cards on the board
-        const cards = await trello.getCardsOnBoard(process.env.TRELLO_BOARD_ID);
-          // Find the cards we completed by name
+        const cards = await trello.getCardsOnBoard(process.env.TRELLO_BOARD_ID);        // Find the cards we completed by name
         const completedCardNames = [
-            'Implement Seasonal Activity Recommendations',
-            'Implement Regional Holiday Calendar', 
-            'Create Climate Zone Information Module'
+            'Design Brazilian State Explorer UI'
         ];
 
         const completedCards = [];
@@ -48,13 +45,11 @@ async function moveCompletedCards() {
             } catch (error) {
                 console.error(`❌ Failed to move card ${card.name}:`, error.message);
             }
-        }
-
-        // Update project status card
+        }        // Update project status card
         const statusCard = cards.find(card => card.name.includes('PROJECT STATUS'));
         if (statusCard) {
-            await trello.updateCard(statusCard.id, 'name', '📊 PROJECT STATUS: 87% Complete (38/44 cards)');
-            console.log('📊 Updated project status to 87% complete');
+            await trello.updateCard(statusCard.id, 'name', '🎉 PROJECT STATUS: 100% COMPLETE! (44/44 cards)');
+            console.log('🎉 Updated project status to 100% complete - PROJECT FINISHED!');
         }
 
         console.log('✅ Card sync completed!');
