@@ -855,29 +855,48 @@ class BrazilTravelApp {
         `;
         
         generatedTrip.classList.remove('d-none');
-        
-        // Get recommended destinations based on activities and dates
-        let recommendedDestinations = this.getRecommendedDestinations(
-            formData.activities,
-            formData.startDate,
-            formData.duration
-        );
+          // Get recommended destinations based on activities and dates
+        let recommendedDestinations = [];
 
         // If user has pre-selected destinations, use those instead
         if (this.selectedDestinations.size > 0) {
+            console.log('Using pre-selected destinations:', this.selectedDestinations.size);
             recommendedDestinations = Array.from(this.selectedDestinations.values()).map(dest => ({
                 ...dest,
                 matchScore: this.calculateDestinationMatch(dest, formData.activities),
                 recommendedDays: this.calculateRecommendedDays(dest, formData.activities)
             }));
+        } else {
+            console.log('No pre-selected destinations, using recommended ones');
+            recommendedDestinations = this.getRecommendedDestinations(
+                formData.activities,
+                formData.startDate,
+                formData.duration
+            );
         }
+
+        console.log('Recommended destinations:', recommendedDestinations);
 
         // Generate smart itinerary
         setTimeout(() => {
-            const smartItinerary = this.generateSmartItinerary(formData, recommendedDestinations);
-            tripItinerary.innerHTML = this.renderSmartItinerary(formData, smartItinerary);
-            // Scroll to generated trip
-            generatedTrip.scrollIntoView({ behavior: 'smooth' });
+            try {
+                const smartItinerary = this.generateSmartItinerary(formData, recommendedDestinations);
+                console.log('Generated itinerary:', smartItinerary);
+                tripItinerary.innerHTML = this.renderSmartItinerary(formData, smartItinerary);
+                // Scroll to generated trip
+                generatedTrip.scrollIntoView({ behavior: 'smooth' });
+            } catch (error) {
+                console.error('Error generating itinerary:', error);
+                tripItinerary.innerHTML = `
+                    <div class="alert alert-danger">
+                        <h5>Error Generating Itinerary</h5>
+                        <p>There was an error creating your trip plan. Please make sure you have selected destinations and try again.</p>
+                        <button class="btn btn-primary" onclick="location.href='destinations.html'">
+                            Select Destinations
+                        </button>
+                    </div>
+                `;
+            }
         }, 2000);
     }    calculateDestinationMatch(destination, selectedActivities) {
         // Ensure destination has activities array
@@ -927,6 +946,27 @@ class BrazilTravelApp {
         const duration = parseInt(formData.duration);
         const startDate = new Date(formData.startDate);
         
+        // Handle case where no destinations are available
+        if (!recommendedDestinations || recommendedDestinations.length === 0) {
+            return {
+                tripName: formData.tripName,
+                duration: duration,
+                startDate: formData.startDate,
+                destinations: [],
+                overview: {
+                    averageMatch: 0,
+                    totalDestinations: 0,
+                    activities: formData.activities
+                },
+                dailyPlan: [],
+                budget: this.generateBudgetEstimate(formData, []),
+                tips: this.generateTravelTips([]),
+                warnings: this.generateTravelWarnings(startDate, []),
+                recommendations: this.generateTravelRecommendations(formData, []),
+                error: 'No destinations selected. Please go back and select some destinations for your trip.'
+            };
+        }
+        
         // Calculate average match score
         const averageMatch = recommendedDestinations.length > 0 
             ? Math.round(recommendedDestinations.reduce((sum, dest) => sum + (dest.matchScore || 0), 0) / recommendedDestinations.length)
@@ -935,11 +975,13 @@ class BrazilTravelApp {
             tripName: formData.tripName,
             duration: duration,
             startDate: formData.startDate,
-            destinations: recommendedDestinations,
-            overview: {
+            destinations: recommendedDestinations,            overview: {
                 averageMatch: averageMatch,
                 totalDestinations: recommendedDestinations.length,
-                activities: formData.activities
+                totalCities: recommendedDestinations.length,
+                activities: formData.activities,
+                estimatedDistance: this.calculateTotalDistance(recommendedDestinations),
+                bestTransport: this.recommendTransport(recommendedDestinations.length, duration)
             },
             dailyPlan: [],
             budget: this.generateBudgetEstimate(formData, recommendedDestinations),
@@ -1021,12 +1063,12 @@ class BrazilTravelApp {
         }
         
         return tips;
-    }
-
-    generateBudgetEstimate(formData, destinations) {
+    }    generateBudgetEstimate(formData, destinations) {
         const baseDailyBudget = 150; // USD per day
-        const duration = parseInt(formData.duration);
+        const duration = parseInt(formData.duration) || 7; // Default to 7 days if undefined
         const totalBudget = baseDailyBudget * duration;
+        
+        console.log('Budget calculation:', { duration, totalBudget, formData });
         
         return {
             total: totalBudget,
@@ -1108,8 +1150,22 @@ class BrazilTravelApp {
             type: 'general',
             message: 'Consider purchasing a local SIM card for better connectivity and navigation.'
         });
-        
-        return recommendations;
+          return recommendations;
+    }
+
+    calculateTotalDistance(destinations) {
+        // Estimate distance based on number of destinations
+        // Average distance between Brazilian cities is ~400km
+        if (destinations.length <= 1) return "0";
+        const estimatedKm = (destinations.length - 1) * 400;
+        return `${estimatedKm} km`;
+    }
+
+    recommendTransport(numDestinations, duration) {
+        if (numDestinations === 1) return "Local transport";
+        if (duration <= 3) return "Domestic flights";
+        if (numDestinations <= 3) return "Bus + local transport";
+        return "Mixed (flights + bus)";
     }
 
     createItinerary(formData, recommendedDestinations) {
@@ -1232,9 +1288,22 @@ class BrazilTravelApp {
                 </button>
             </div>
         `;
-    }
+    }    renderSmartItinerary(formData, itinerary) {
+        // Handle error case
+        if (itinerary.error) {
+            return `
+                <div class="alert alert-warning">
+                    <h5><i class="fas fa-exclamation-triangle me-2"></i>No Destinations Selected</h5>
+                    <p>${itinerary.error}</p>
+                    <div class="mt-3">
+                        <a href="destinations.html" class="btn btn-primary">
+                            <i class="fas fa-map-marker-alt me-2"></i>Browse Destinations
+                        </a>
+                    </div>
+                </div>
+            `;
+        }
 
-    renderSmartItinerary(formData, itinerary) {
         const startDate = new Date(formData.startDate);
         const endDate = new Date(formData.endDate);
 
@@ -1262,10 +1331,9 @@ class BrazilTravelApp {
                     <div class="col-md-2">
                         <small class="text-muted d-block">Cities</small>
                         <strong>${itinerary.overview.totalCities}</strong>
-                    </div>
-                    <div class="col-md-2">
+                    </div>                    <div class="col-md-2">
                         <small class="text-muted d-block">Distance</small>
-                        <strong>${itinerary.overview.totalDistance} km</strong>
+                        <strong>${itinerary.overview.estimatedDistance}</strong>
                     </div>
                     <div class="col-md-3">
                         <small class="text-muted d-block">Transport</small>
@@ -1275,17 +1343,16 @@ class BrazilTravelApp {
 
                 <!-- Budget Overview -->
                 <div class="budget-overview p-3 bg-white rounded border">
-                    <h6 class="mb-2"><i class="fas fa-dollar-sign me-2"></i>Budget Estimate</h6>
-                    <div class="row">
+                    <h6 class="mb-2"><i class="fas fa-dollar-sign me-2"></i>Budget Estimate</h6>                    <div class="row">
                         <div class="col-md-4">
                             <div class="text-center">
-                                <div class="h4 text-success mb-1">$${itinerary.budget.totalPerDay}</div>
+                                <div class="h4 text-success mb-1">$${itinerary.budget.daily}</div>
                                 <small class="text-muted">Per Day</small>
                             </div>
                         </div>
                         <div class="col-md-4">
                             <div class="text-center">
-                                <div class="h4 text-primary mb-1">$${itinerary.budget.totalTrip}</div>
+                                <div class="h4 text-primary mb-1">$${itinerary.budget.total}</div>
                                 <small class="text-muted">Total Trip</small>
                             </div>
                         </div>
@@ -1300,42 +1367,35 @@ class BrazilTravelApp {
             </div>
 
             <!-- Warnings and Recommendations -->
-            ${this.renderAlertsSection(itinerary.warnings, itinerary.recommendations)}
-
-            <!-- Daily Schedule -->
+            ${this.renderAlertsSection(itinerary.warnings, itinerary.recommendations)}            <!-- Daily Schedule -->
             <div class="daily-schedule mb-4">
                 <h5 class="mb-3"><i class="fas fa-calendar-alt me-2"></i>Daily Itinerary</h5>
                 <div class="timeline">
-                    ${itinerary.dailySchedule.map(day => `
+                    ${(itinerary.dailyPlan || []).map(day => `
                         <div class="timeline-item card mb-3">
                             <div class="card-body">
                                 <div class="d-flex justify-content-between align-items-start mb-2">
                                     <div>
                                         <h6 class="card-title mb-1">
                                             <span class="badge bg-primary me-2">Day ${day.day}</span>
-                                            ${day.city}
+                                            ${day.destination}
                                         </h6>
-                                        <div class="weather-info">
-                                            <small class="text-muted">
-                                                <i class="${day.weather.icon} me-1"></i>
-                                                ${day.weather.temperature} • ${day.weather.condition}
-                                            </small>
-                                        </div>
+                                        <div class="weather-info">                                        <small class="text-muted">${day.date}</small>
                                     </div>
                                 </div>
                                 
                                 <div class="activities mb-3">
                                     <strong class="small">Planned Activities:</strong>
                                     <ul class="mt-1 mb-0">
-                                        ${day.activities.map(activity => `<li class="small">${activity}</li>`).join('')}
+                                        ${(day.activities || []).map(activity => `<li class="small">${activity}</li>`).join('')}
                                     </ul>
                                 </div>
                                 
-                                ${day.tips.length > 0 ? `
+                                ${(day.tips || []).length > 0 ? `
                                     <div class="tips">
                                         <strong class="small text-info">💡 Tips:</strong>
                                         <ul class="mt-1 mb-0">
-                                            ${day.tips.map(tip => `<li class="small text-muted">${tip}</li>`).join('')}
+                                            ${(day.tips || []).map(tip => `<li class="small text-muted">${tip}</li>`).join('')}
                                         </ul>
                                     </div>
                                 ` : ''}
@@ -1343,13 +1403,11 @@ class BrazilTravelApp {
                         </div>
                     `).join('')}
                 </div>
-            </div>
-
-            <!-- Budget Breakdown -->
+            </div>            <!-- Budget Breakdown -->
             <div class="budget-breakdown mb-4">
                 <h5 class="mb-3"><i class="fas fa-chart-pie me-2"></i>Budget Breakdown</h5>
                 <div class="row">
-                    ${itinerary.budget.breakdown.map(item => `
+                    ${(itinerary.budget?.breakdown || []).map(item => `
                         <div class="col-md-6 col-lg-4 mb-3">
                             <div class="card h-100">
                                 <div class="card-body text-center">
