@@ -2,9 +2,8 @@
 // AI-like algorithm to recommend optimal travel dates
 
 class TravelDatesCalculator {
-    constructor(weatherAPI, holidayAPI) {
+    constructor(weatherAPI) {
         this.weatherAPI = weatherAPI;
-        this.holidayAPI = holidayAPI;
     }
 
     async calculateBestDates(preferences = {}) {
@@ -18,7 +17,7 @@ class TravelDatesCalculator {
 
         try {
             // Get holiday data
-            const holidays = await this.holidayAPI.fetchHolidays();
+            const holidays = await HolidayAPI.fetchHolidays();
             
             // Analyze weather patterns (simplified)
             const weatherPatterns = this.getWeatherPatterns();

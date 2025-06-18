@@ -2,8 +2,7 @@
 // State-specific holiday information for different Brazilian regions
 
 class RegionalHolidayCalendar {
-    constructor(holidayAPI) {
-        this.holidayAPI = holidayAPI;
+    constructor() {
         this.regionalHolidays = this.initializeRegionalHolidays();
         this.selectedStates = ['RJ', 'SP']; // Default states
     }
@@ -87,7 +86,7 @@ class RegionalHolidayCalendar {
         
         try {
             // Get national holidays
-            const nationalHolidays = await this.holidayAPI.fetchHolidays();
+            const nationalHolidays = await HolidayAPI.fetchHolidays();
             
             // Get regional holidays for selected states
             const regionalHolidays = this.getRegionalHolidays(targetStates, targetYear);

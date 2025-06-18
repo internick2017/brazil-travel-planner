@@ -11,8 +11,7 @@ class BrazilTravelApp {
         
         // Initialize selected destinations from localStorage
         const savedDestinations = JSON.parse(localStorage.getItem('selectedDestinations') || '[]');
-        this.selectedDestinations = new Map(savedDestinations);
-        this.maxDestinations = 5; // Maximum number of destinations that can be added
+        this.selectedDestinations = new Map(savedDestinations);        this.maxDestinations = 5; // Maximum number of destinations that can be added
         
         this.init();
     }    async init() {
@@ -38,14 +37,15 @@ class BrazilTravelApp {
         }
 
         // Initialize enhanced animations
-        this.initAnimations();
-        
-        // Load initial data
+        this.initAnimations();        // Load initial data
         try {
             await this.loadInitialWeatherData();
             await this.loadUpcomingHolidays();
         } catch (error) {
-            console.log('⚠️ Some APIs failed to load, using fallback data');
+            console.error('❌ Error loading data:', error);
+            // Ensure fallback data is shown
+            this.loadStaticWeatherData(document.getElementById('weatherPreview'));
+            this.renderFallbackHolidays();
         }
           // Initialize page-specific features
         this.initializePage();
@@ -63,8 +63,7 @@ class BrazilTravelApp {
         if (currentPage.includes('planner')) {
             this.initPlannerPage();
         } else if (currentPage.includes('destinations')) {
-            this.initDestinationsPage();
-        } else if (currentPage.includes('index') || currentPage === '/') {
+            this.initDestinationsPage();        } else if (currentPage.includes('index') || currentPage === '/') {
             this.initHomePage();
         }
     }
@@ -74,6 +73,13 @@ class BrazilTravelApp {
         if (window.WeatherAPI && window.API_CONFIG) {
             this.weatherAPI = new WeatherAPI();
             console.log('🌤️ Weather API initialized');
+            
+            // Check if API key is properly configured
+            if (this.weatherAPI.apiKey && this.weatherAPI.apiKey !== 'YOUR_VISUAL_CROSSING_API_KEY_HERE') {
+                console.log('✅ Weather API key configured');
+            } else {
+                console.log('⚠️ Weather API key not configured - will use static data');
+            }
         } else {
             console.warn('⚠️ Weather API not available. Make sure config.js and weather.js are loaded.');
         }
@@ -145,11 +151,9 @@ class BrazilTravelApp {
             this.weatherComparison = new WeatherComparison(this.weatherAPI);
             console.log('🌡️ Weather Comparison module initialized');
         }
-    }
-
-    initTravelDatesCalculator() {
-        if (window.TravelDatesCalculator && window.HolidayAPI) {
-            this.travelDatesCalculator = new TravelDatesCalculator(this.weatherAPI, window.HolidayAPI);
+    }    initTravelDatesCalculator() {
+        if (window.TravelDatesCalculator) {
+            this.travelDatesCalculator = new TravelDatesCalculator(this.weatherAPI);
             console.log('📅 Travel Dates Calculator initialized');
         }
     }
@@ -166,27 +170,49 @@ class BrazilTravelApp {
         });
 
         // Add loading animation to weather widgets
-        const weatherWidgets = document.querySelectorAll('.weather-widget');
-        weatherWidgets.forEach(widget => {
+        const weatherWidgets = document.querySelectorAll('.weather-widget');        weatherWidgets.forEach(widget => {
             widget.classList.add('loading-pulse');
         });
-    }
-
-    async loadUpcomingHolidays() {
-        if (window.HolidayAPI) {
+    }    async loadUpcomingHolidays() {
+        console.log('📅 Starting holiday loading...');        if (window.HolidayAPI) {
             try {
-                const holidays = await window.HolidayAPI.fetchHolidays();
-                this.upcomingHolidays = holidays.slice(0, 5); // Next 5 holidays
-                console.log('📅 Loaded upcoming holidays');
+                console.log('📅 Loading holidays for year:', new Date().getFullYear());
+                const holidays = await HolidayAPI.fetchHolidays();
+                
+                // Filter for upcoming holidays only
+                const today = new Date();
+                today.setHours(0, 0, 0, 0); // Reset time to start of day for accurate comparison
+                
+                const upcomingHolidays = holidays.filter(holiday => {
+                    const holidayDate = new Date(holiday.date);
+                    return holidayDate >= today;
+                }).slice(0, 5); // Next 5 upcoming holidays
+                  this.upcomingHolidays = upcomingHolidays;
+                this.renderHolidaysWidget();
             } catch (error) {
-                console.warn('Could not load holidays:', error);
+                console.warn('📅 Could not load holidays from API, using fallback:', error);
+                // Use fallback holidays if API fails
+                const fallbackHolidays = HolidayAPI.getFallbackHolidays();
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                
+                this.upcomingHolidays = fallbackHolidays.filter(holiday => {
+                    const holidayDate = new Date(holiday.date);
+                    return holidayDate >= today;
+                }).slice(0, 5);
+                
+                this.renderHolidaysWidget();
             }
+        } else {
+            console.warn('📅 HolidayAPI not available');
+            this.renderFallbackHolidays();
         }
-    }
-
-    async loadInitialWeatherData() {
+    }    async loadInitialWeatherData() {
         const weatherPreview = document.getElementById('weatherPreview');
-        if (!weatherPreview) return;
+        if (!weatherPreview) {
+            console.error('❌ weatherPreview element not found');
+            return;
+        }
 
         // Show loading spinner
         weatherPreview.innerHTML = `
@@ -197,8 +223,13 @@ class BrazilTravelApp {
         `;
 
         try {
-            const weatherData = await this.loadRealTimeWeatherData();
-            this.renderLiveWeatherData(weatherPreview, weatherData);
+            // Only try real-time weather if API is properly initialized
+            if (this.weatherAPI && this.weatherAPI.apiKey && this.weatherAPI.apiKey !== 'YOUR_VISUAL_CROSSING_API_KEY_HERE') {
+                const weatherData = await this.loadRealTimeWeatherData();
+                this.renderLiveWeatherData(weatherPreview, weatherData);
+            } else {
+                this.loadStaticWeatherData(weatherPreview);
+            }
         } catch (error) {
             console.warn('⚠️ Real-time weather failed, using static data.', error);
             this.loadStaticWeatherData(weatherPreview);
@@ -215,21 +246,26 @@ class BrazilTravelApp {
                 .then(data => ({ name, data, success: true }))
                 .catch(err => ({ name, err, success: false }))
         );
-        const results = await Promise.all(promises);
-
-        return results.map(item => {
-            if (item.success) {
-                const cond = item.data.conditions || 'Clear';
+        const results = await Promise.all(promises);        return results.map(item => {
+            if (item.success && item.data) {
+                // Extract current conditions from Visual Crossing API response
+                const current = item.data.currentConditions || item.data.days?.[0] || {};
+                const cond = current.conditions || current.condition || 'Clear';
+                const temp = current.temp || current.temperature || 25;
+                const humidity = current.humidity || 60;
+                const windSpeed = current.windspeed || current.windSpeed || 10;
+                
                 return {
                     city: item.name,
-                    temperature: Math.round(item.data.temp),
+                    temperature: Math.round(temp),
                     condition: cond,
                     icon: this.getWeatherIcon(cond),
-                    humidity: item.data.humidity,
-                    windSpeed: item.data.windspeed,
+                    humidity: Math.round(humidity),
+                    windSpeed: Math.round(windSpeed),
                     isLive: true
                 };
             } else {
+                console.warn(`Failed to get weather for ${item.name}:`, item.err);
                 return this.getFallbackCityWeather(item.name);
             }
         });
@@ -249,36 +285,44 @@ class BrazilTravelApp {
             condition: fallback.cond,
             icon: this.getWeatherIcon(fallback.cond),
             humidity: fallback.hum,
-            windSpeed: fallback.wind,
-            isLive: false
+            windSpeed: fallback.wind,            isLive: false
         };
-    }
-
-    // Render weather cards
+    }    // Render weather cards
     renderLiveWeatherData(container, data) {
+        console.log('🌤️ Rendering weather data to container:', container);
         const live = data.some(d => d.isLive);
-        container.innerHTML = `
-            <div class="row g-2">
+        const weatherHTML = `
+            <div class="weather-grid">
                 ${data.map(d => `
-                    <div class="col-6 col-lg-3">
-                        <div class="weather-card p-3 rounded bg-white bg-opacity-10 text-center">
-                            <div class="weather-icon mb-2">${d.icon}</div>
-                            <h6 class="text-white mb-1">${d.city}</h6>
-                            <div class="h5 text-warning mb-1">${d.temperature}°C</div>
-                            <small class="text-light d-block">${d.condition}</small>
-                            <small class="text-light opacity-75 d-block mt-1">
-                                <i class="fas fa-tint me-1"></i>${d.humidity}%
-                                <span class="mx-1">•</span>
-                                <i class="fas fa-wind me-1"></i>${d.windSpeed} km/h
-                            </small>
+                    <div class="weather-card-modern">
+                        <div class="weather-card-header">
+                            <h6 class="city-name">${d.city}</h6>
+                            <div class="weather-icon">
+                                <i class="${d.icon}"></i>
+                            </div>
+                        </div>
+                        <div class="weather-card-body">
+                            <div class="temperature">${d.temperature}°</div>
+                            <div class="condition">${d.condition}</div>
+                            <div class="weather-details">
+                                <span class="detail-item">
+                                    <i class="fas fa-tint"></i> ${d.humidity}%
+                                </span>
+                                <span class="detail-item">
+                                    <i class="fas fa-wind"></i> ${d.windSpeed}km/h
+                                </span>
+                            </div>
                         </div>
                     </div>
                 `).join('')}
             </div>
-            <div class="mt-2 text-end text-white-50" style="font-size: .85rem;">
-                Updated: ${new Date().toLocaleTimeString()} ${live ? '<span class="badge bg-success ms-2">LIVE</span>' : '<span class="badge bg-warning text-dark ms-2">CACHED</span>'}
-            </div>
-        `;
+            <div class="weather-footer">
+                <small class="update-time">
+                    <i class="fas fa-clock"></i> ${new Date().toLocaleTimeString()}
+                    ${live ? '<span class="status-badge live">LIVE</span>' : '<span class="status-badge cached">CACHED</span>'}
+                </small>
+            </div>        `;
+          container.innerHTML = weatherHTML;
     }
 
     getWeatherIcon(condition) {
@@ -294,6 +338,34 @@ class BrazilTravelApp {
             return 'fas fa-bolt';
         } else {
             return 'fas fa-cloud-sun';
+        }
+    }
+
+    getHolidayIcon(holidayName) {
+        const nameLower = holidayName.toLowerCase();
+        
+        if (nameLower.includes('carnaval')) {
+            return 'fas fa-masks-theater';
+        } else if (nameLower.includes('natal') || nameLower.includes('christmas')) {
+            return 'fas fa-gifts';
+        } else if (nameLower.includes('páscoa') || nameLower.includes('santa')) {
+            return 'fas fa-cross';
+        } else if (nameLower.includes('independência') || nameLower.includes('tiradentes')) {
+            return 'fas fa-flag';
+        } else if (nameLower.includes('trabalho') || nameLower.includes('work')) {
+            return 'fas fa-hammer';
+        } else if (nameLower.includes('finados') || nameLower.includes('consciência')) {
+            return 'fas fa-heart';
+        } else if (nameLower.includes('aparecida') || nameLower.includes('nossa')) {
+            return 'fas fa-church';
+        } else if (nameLower.includes('república') || nameLower.includes('proclamação')) {
+            return 'fas fa-landmark';
+        } else if (nameLower.includes('corpus')) {
+            return 'fas fa-dove';
+        } else if (nameLower.includes('mundial') || nameLower.includes('ano')) {
+            return 'fas fa-champagne-glasses';
+        } else {
+            return 'fas fa-calendar-day';
         }
     }
 
@@ -1103,8 +1175,7 @@ class BrazilTravelApp {
                         ${recommendations.map(rec => `
                             <div class="alert alert-info alert-sm">
                                 <small><span class="me-2">${rec.icon}</span><strong>${rec.title}:</strong> ${rec.message}</small>
-                            </div>
-                        `).join('')}
+                            </div>                        `).join('')}
                     </div>
                 ` : ''}
             </div>
@@ -1130,14 +1201,16 @@ class BrazilTravelApp {
                 this.showAlert('Trip URL copied to clipboard!', 'success');
             });
         }
-    }
-
-    initHomePage() {
+    }    initHomePage() {
         // Initialize home page specific features
-        console.log('🏠 Initializing home page');
         
         // Initialize destination navigation counter
         this.updateNavigationCounter();
+        
+        // Render holidays if they are already loaded
+        if (this.upcomingHolidays && this.upcomingHolidays.length > 0) {
+            this.renderHolidaysWidget();
+        }
     }
 
     initDestinationsPage() {
@@ -1184,12 +1257,129 @@ class BrazilTravelApp {
             el.textContent = count;
             el.style.display = count > 0 ? 'inline' : 'none';
         });
+    }    // Render holidays widget
+    renderHolidaysWidget() {
+        const holidaysWidget = document.getElementById('holidaysWidget');
+        if (!holidaysWidget) {
+            console.error('❌ holidaysWidget element not found');
+            return;
+        }
+
+        if (!this.upcomingHolidays || this.upcomingHolidays.length === 0) {
+            holidaysWidget.innerHTML = `
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    No upcoming holidays available
+                </div>
+            `;
+            return;
+        }
+        
+        const holidaysHtml = this.upcomingHolidays.map(holiday => {
+            const date = new Date(holiday.date);
+            const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun",
+                "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+            const formattedDate = `${monthNames[date.getMonth()]} ${date.getDate()}`;
+            
+            // Get holiday icon based on holiday name
+            const holidayIcon = this.getHolidayIcon(holiday.name);
+            
+            return `
+                <div class="holiday-card-modern">
+                    <div class="holiday-icon">
+                        <i class="${holidayIcon}"></i>
+                    </div>
+                    <div class="holiday-content">
+                        <h6 class="holiday-name">${holiday.name}</h6>
+                        <p class="holiday-local-name">${holiday.localName || holiday.name}</p>
+                    </div>
+                    <div class="holiday-date">
+                        <span class="date-badge">${formattedDate}</span>
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+        const finalHTML = `
+            <div class="holidays-container-modern">
+                ${holidaysHtml}
+            </div>
+        `;        holidaysWidget.innerHTML = finalHTML;
+        console.log('✅ Holidays widget rendered successfully');
+    }    // Render fallback holidays when API is not available
+    renderFallbackHolidays() {
+        const holidaysWidget = document.getElementById('holidaysWidget');
+        if (!holidaysWidget) {
+            console.error('❌ holidaysWidget element not found');
+            return;
+        }const fallbackHolidays = [
+            { name: 'Independence Day', date: '2025-09-07', localName: 'Dia da Independência' },
+            { name: 'Our Lady of Aparecida', date: '2025-10-12', localName: 'Nossa Senhora Aparecida' },
+            { name: 'All Souls Day', date: '2025-11-02', localName: 'Finados' },
+            { name: 'Proclamation of the Republic', date: '2025-11-15', localName: 'Proclamação da República' },
+            { name: 'Black Awareness Day', date: '2025-11-20', localName: 'Dia da Consciência Negra' },
+            { name: 'Christmas', date: '2025-12-25', localName: 'Natal' }
+        ];
+
+        // Filter for upcoming holidays only
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        
+        this.upcomingHolidays = fallbackHolidays.filter(holiday => {
+            const holidayDate = new Date(holiday.date);
+            return holidayDate >= today;
+        }).slice(0, 5);
+        this.renderHolidaysWidget();
+    }    // Load static weather data when API is not available
+    loadStaticWeatherData(container) {
+        if (!container) {
+            console.error('❌ Weather container not found');
+            return;
+        }
+
+        const staticWeatherData = [
+            {
+                city: 'Rio de Janeiro',
+                temperature: 28,
+                condition: 'Partly cloudy',
+                icon: this.getWeatherIcon('Partly cloudy'),
+                humidity: 70,
+                windSpeed: 12,
+                isLive: false
+            },
+            {
+                city: 'São Paulo',
+                temperature: 22,
+                condition: 'Cloudy',
+                icon: this.getWeatherIcon('Cloudy'),
+                humidity: 65,
+                windSpeed: 8,
+                isLive: false
+            },
+            {
+                city: 'Brasília',
+                temperature: 26,
+                condition: 'Clear',
+                icon: this.getWeatherIcon('Clear'),
+                humidity: 45,
+                windSpeed: 15,
+                isLive: false
+            },
+            {
+                city: 'Salvador',
+                temperature: 29,
+                condition: 'Sunny',
+                icon: this.getWeatherIcon('Sunny'),
+                humidity: 75,
+                windSpeed: 14,
+                isLive: false
+            }        ];
+
+        this.renderLiveWeatherData(container, staticWeatherData);
     }
 }
 
-// Initialize the application when DOM is loaded
+// Initialize the app when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
-    window.brazilTravelApp = new BrazilTravelApp();
+    new BrazilTravelApp();
 });
-
-window.BrazilTravelApp = BrazilTravelApp;

@@ -1,13 +1,34 @@
 // Holiday Calendar Module
 // Fetch Brazilian holidays and render a simple calendar table
 
-export async function fetchHolidays() {
-    const response = await fetch('https://brasilapi.com.br/api/feriados/v1');
-    if (!response.ok) throw new Error('Failed to load holidays');
-    return response.json();
-}
+class HolidayAPI {
+    static async fetchHolidays(year = new Date().getFullYear()) {
+        try {
+            const response = await fetch(`https://brasilapi.com.br/api/feriados/v1/${year}`);
+            if (!response.ok) throw new Error('Failed to load holidays');
+            return response.json();
+        } catch (error) {
+            console.error('Error fetching holidays:', error);
+            // Return fallback holidays if API fails
+            return this.getFallbackHolidays(year);
+        }
+    }
 
-export function filterHolidaysByRange(holidays, startDate, endDate) {
+    static getFallbackHolidays(year) {
+        // Common Brazilian holidays (fixed dates)
+        return [
+            { date: `${year}-01-01`, name: 'Ano Novo', type: 'national' },
+            { date: `${year}-04-21`, name: 'Tiradentes', type: 'national' },
+            { date: `${year}-05-01`, name: 'Dia do Trabalhador', type: 'national' },
+            { date: `${year}-09-07`, name: 'Independência do Brasil', type: 'national' },
+            { date: `${year}-10-12`, name: 'Nossa Senhora Aparecida', type: 'national' },
+            { date: `${year}-11-02`, name: 'Finados', type: 'national' },
+            { date: `${year}-11-15`, name: 'Proclamação da República', type: 'national' },
+            { date: `${year}-12-25`, name: 'Natal', type: 'national' }
+        ];
+    }
+
+    static filterHolidaysByRange(holidays, startDate, endDate) {
     const start = new Date(startDate);
     const end = new Date(endDate);
     return holidays.filter(h => {
@@ -16,7 +37,7 @@ export function filterHolidaysByRange(holidays, startDate, endDate) {
     });
 }
 
-export function renderHolidayCalendar(containerId, holidays) {
+    static renderHolidayCalendar(containerId, holidays) {
     const container = document.getElementById(containerId);
     if (!container) return;
     if (holidays.length === 0) {
@@ -30,18 +51,14 @@ export function renderHolidayCalendar(containerId, holidays) {
                 ${holidays.map(h => `
                     <tr>
                         <td>${new Date(h.date).toLocaleDateString()}</td>
-                        <td>${h.name}</td>
-                    </tr>
+                        <td>${h.name}</td>                    </tr>
                 `).join('')}
             </tbody>
         </table>
     `;
     container.innerHTML = html;
+    }
 }
 
-// Expose as global API
-window.HolidayAPI = {
-    fetchHolidays,
-    filterHolidaysByRange,
-    renderHolidayCalendar
-};
+// Export the class globally
+window.HolidayAPI = HolidayAPI;
