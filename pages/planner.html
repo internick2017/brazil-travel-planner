@@ -317,9 +317,99 @@
     <script src="../assets/js/modules/travel-dates.js"></script>
     <script src="../assets/js/modules/weather-alerts.js"></script>
     <script src="../assets/js/modules/seasonal-activities.js"></script>
-    <script src="../assets/js/modules/regional-holidays.js"></script>
-    <script src="../assets/js/main.js"></script>
-    <script>
+    <script src="../assets/js/modules/regional-holidays.js"></script>    <script src="../assets/js/main.js"></script>
+    <script>        // Initialize holidays on page load
+        document.addEventListener('DOMContentLoaded', async function() {
+            try {
+                console.log('Loading Brazilian holidays...');
+                const holidays = await HolidayAPI.fetchHolidays();
+                
+                // Filter for upcoming holidays only (using Brazil timezone)
+                const today = new Date();
+                // Adjust for Brazil timezone (UTC-3)
+                const brazilToday = new Date(today.getTime() - (3 * 60 * 60 * 1000));
+                brazilToday.setHours(0, 0, 0, 0);
+                
+                const upcomingHolidays = holidays.filter(holiday => {
+                    // Parse holiday date as Brazil local date
+                    const holidayDate = new Date(holiday.date + 'T00:00:00-03:00');
+                    return holidayDate >= brazilToday;
+                }).slice(0, 5); // Next 5 upcoming holidays
+                
+                // Render holidays
+                renderHolidaysCalendar(upcomingHolidays);
+            } catch (error) {
+                console.error('Failed to load holidays:', error);
+                // Show fallback message
+                document.getElementById('holidaysCalendar').innerHTML = 
+                    '<p class="text-muted">Unable to load holiday information at this time.</p>';
+            }
+        });        function renderHolidaysCalendar(holidays) {
+            const container = document.getElementById('holidaysCalendar');
+            if (!container) return;
+            
+            if (holidays.length === 0) {
+                container.innerHTML = '<p class="text-muted">No upcoming holidays found.</p>';
+                return;
+            }
+            
+            const holidaysHtml = holidays.map(holiday => {
+                // Parse date with Brazil timezone
+                const date = new Date(holiday.date + 'T00:00:00-03:00');
+                const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun",
+                    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+                const formattedDate = `${monthNames[date.getMonth()]} ${date.getDate()}`;
+                
+                // Check if holiday is today (in Brazil timezone)
+                const today = new Date();
+                const brazilToday = new Date(today.getTime() - (3 * 60 * 60 * 1000));
+                const isToday = date.toDateString() === brazilToday.toDateString();
+                
+                // Get holiday icon
+                const holidayIcon = getHolidayIcon(holiday.name);
+                
+                return `
+                    <div class="d-flex align-items-center mb-3 p-2 border rounded ${isToday ? 'bg-light border-success' : ''}">
+                        <div class="me-3">
+                            <i class="${holidayIcon} text-success" style="font-size: 1.5rem;"></i>
+                        </div>
+                        <div class="flex-grow-1">
+                            <h6 class="mb-1">${holiday.name}${isToday ? ' <span class="badge bg-success">Today</span>' : ''}</h6>
+                            <small class="text-muted">${formattedDate}, ${date.getFullYear()}</small>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            
+            container.innerHTML = holidaysHtml;
+        }
+
+        function getHolidayIcon(holidayName) {
+            const iconMap = {
+                'Ano Novo': 'fas fa-glass-cheers',
+                'Tiradentes': 'fas fa-flag',
+                'Dia do Trabalhador': 'fas fa-hammer',
+                'Independência do Brasil': 'fas fa-flag-usa',
+                'Nossa Senhora Aparecida': 'fas fa-church',
+                'Finados': 'fas fa-cross',
+                'Proclamação da República': 'fas fa-landmark',
+                'Natal': 'fas fa-tree',
+                'Carnaval': 'fas fa-mask',
+                'Páscoa': 'fas fa-egg',
+                'Corpus Christi': 'fas fa-church'
+            };
+            
+            // Check for partial matches
+            for (const [key, icon] of Object.entries(iconMap)) {
+                if (holidayName.toLowerCase().includes(key.toLowerCase()) || 
+                    key.toLowerCase().includes(holidayName.toLowerCase())) {
+                    return icon;
+                }
+            }
+            
+            return 'fas fa-calendar-day';
+        }
+
         function showSeasonalActivities() {
             const region = document.getElementById('activityRegion').value;
             const season = document.getElementById('activitySeason').value;

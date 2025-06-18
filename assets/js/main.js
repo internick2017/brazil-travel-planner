@@ -70,34 +70,38 @@ class BrazilTravelApp {
 
     initializeAPIs() {
         // Initialize Weather API if config is available
-        if (window.WeatherAPI && window.API_CONFIG) {
-            this.weatherAPI = new WeatherAPI();
-            console.log('🌤️ Weather API initialized');
-            
-            // Check if API key is properly configured
-            if (this.weatherAPI.apiKey && this.weatherAPI.apiKey !== 'YOUR_VISUAL_CROSSING_API_KEY_HERE') {
-                console.log('✅ Weather API key configured');
+        // Defensive initialization with error handling
+        try {
+            if (window.WeatherAPI) {
+                this.weatherAPI = new WeatherAPI();
+                console.log('✅ Weather API initialized');
             } else {
-                console.log('⚠️ Weather API key not configured - will use static data');
+                console.warn('⚠️ WeatherAPI class not available');
             }
-        } else {
-            console.warn('⚠️ Weather API not available. Make sure config.js and weather.js are loaded.');
+        } catch (error) {
+            console.warn('⚠️ Failed to initialize Weather API:', error);
         }
-        
-        // Initialize Brazil API
-        if (window.BrazilAPI) {
-            this.brazilAPI = new BrazilAPI();
-            console.log('🇧🇷 Brazil API initialized');
-        } else {
-            console.warn('⚠️ Brazil API not available. Make sure brazil.js is loaded.');
+
+        try {
+            if (window.BrazilAPI) {
+                this.brazilAPI = new BrazilAPI();
+                console.log('✅ Brazil API initialized');
+            } else {
+                console.warn('⚠️ BrazilAPI class not available');
+            }
+        } catch (error) {
+            console.warn('⚠️ Failed to initialize Brazil API:', error);
         }
-        
-        // Initialize Countries API
-        if (window.CountriesAPI) {
-            this.countriesAPI = new CountriesAPI();
-            console.log('🌎 Countries API initialized');
-        } else {
-            console.warn('⚠️ Countries API not available. Make sure countries.js is loaded.');
+
+        try {
+            if (window.CountriesAPI) {
+                this.countriesAPI = new CountriesAPI();
+                console.log('✅ Countries API initialized');
+            } else {
+                console.warn('⚠️ CountriesAPI class not available');
+            }
+        } catch (error) {
+            console.warn('⚠️ Failed to initialize Countries API:', error);
         }
     }
 
@@ -875,13 +879,237 @@ class BrazilTravelApp {
             // Scroll to generated trip
             generatedTrip.scrollIntoView({ behavior: 'smooth' });
         }, 2000);
-    }
-
-    calculateDestinationMatch(destination, selectedActivities) {
-        const matchingActivities = destination.activities.filter(
+    }    calculateDestinationMatch(destination, selectedActivities) {
+        // Ensure destination has activities array
+        const destActivities = destination.activities || [];
+        const matchingActivities = destActivities.filter(
             activity => selectedActivities.includes(activity)
         );
-        return Math.round((matchingActivities.length / selectedActivities.length) * 100);
+        return selectedActivities.length > 0 ? 
+            Math.round((matchingActivities.length / selectedActivities.length) * 100) : 0;
+    }    getRecommendedDestinations(activities, startDate, duration) {
+        // Use the predefined destinations from getBrazilianDestinations
+        const allDestinations = this.getBrazilianDestinations();
+        
+        // Filter destinations based on selected activities
+        const filteredDestinations = allDestinations.filter(dest => {
+            const destActivities = dest.activities || [];
+            return destActivities.some(activity => activities.includes(activity));
+        });
+        
+        // Sort by match percentage and return top destinations
+        return filteredDestinations
+            .map(dest => ({
+                ...dest,
+                matchScore: this.calculateDestinationMatch(dest, activities),
+                recommendedDays: this.calculateRecommendedDays(dest, activities)
+            }))
+            .sort((a, b) => b.matchScore - a.matchScore)
+            .slice(0, Math.min(5, Math.ceil(duration / 2))); // Limit based on trip duration
+    }    calculateRecommendedDays(destination, activities) {
+        // Calculate recommended days based on destination type and activities
+        const basedays = 2;
+        let additionalDays = 0;
+        
+        // Add days based on matching activities
+        const destActivities = destination.activities || [];
+        const matchingActivities = destActivities.filter(
+            activity => activities.includes(activity)
+        );
+        additionalDays += matchingActivities.length * 0.5;
+        
+        // Popular destinations get more days
+        const matchPercentage = destination.matchPercentage || 50;
+        if (matchPercentage > 80) additionalDays += 1;
+        
+        return Math.min(Math.ceil(basedays + additionalDays), 4); // Max 4 days per destination
+    }    generateSmartItinerary(formData, recommendedDestinations) {
+        const duration = parseInt(formData.duration);
+        const startDate = new Date(formData.startDate);
+        
+        // Calculate average match score
+        const averageMatch = recommendedDestinations.length > 0 
+            ? Math.round(recommendedDestinations.reduce((sum, dest) => sum + (dest.matchScore || 0), 0) / recommendedDestinations.length)
+            : 0;
+          const itinerary = {
+            tripName: formData.tripName,
+            duration: duration,
+            startDate: formData.startDate,
+            destinations: recommendedDestinations,
+            overview: {
+                averageMatch: averageMatch,
+                totalDestinations: recommendedDestinations.length,
+                activities: formData.activities
+            },
+            dailyPlan: [],
+            budget: this.generateBudgetEstimate(formData, recommendedDestinations),
+            tips: this.generateTravelTips(recommendedDestinations),
+            warnings: this.generateTravelWarnings(startDate, recommendedDestinations),
+            recommendations: this.generateTravelRecommendations(formData, recommendedDestinations)
+        };
+        
+        // Generate daily plan
+        let currentDay = 1;
+        let currentDate = new Date(startDate);
+        
+        recommendedDestinations.forEach((dest, index) => {
+            const daysForDest = Math.min(dest.recommendedDays, duration - currentDay + 1);
+            
+            for (let i = 0; i < daysForDest && currentDay <= duration; i++) {
+                const dayActivities = this.generateDayActivities(dest, formData.activities);
+                
+                itinerary.dailyPlan.push({
+                    day: currentDay,
+                    date: new Date(currentDate).toLocaleDateString(),
+                    destination: dest.name,
+                    activities: dayActivities,
+                    tips: this.generateDayTips(dest, dayActivities)
+                });
+                
+                currentDay++;
+                currentDate.setDate(currentDate.getDate() + 1);
+            }
+        });
+        
+        return itinerary;
+    }generateDayActivities(destination, selectedActivities) {
+        const activities = [];
+        const destActivities = destination.activities || ['Culture', 'Historic'];
+        const validActivities = destActivities.filter(act => 
+            selectedActivities.includes(act)
+        );
+        
+        // Morning activity
+        if (validActivities.includes('Adventure')) {
+            activities.push('Morning adventure tour or outdoor activity');
+        } else if (validActivities.includes('Historic')) {
+            activities.push('Visit historical sites and museums');
+        } else {
+            activities.push('Explore city center and main attractions');
+        }
+        
+        // Afternoon activity
+        if (validActivities.includes('Culture')) {
+            activities.push('Cultural experience and local interaction');
+        } else if (validActivities.includes('Nature')) {
+            activities.push('Nature exploration and scenic viewpoints');
+        } else {
+            activities.push('Lunch at local restaurant and city exploration');
+        }
+        
+        // Evening activity
+        if (validActivities.includes('Nightlife')) {
+            activities.push('Evening entertainment and nightlife');
+        } else {
+            activities.push('Traditional dinner and local cultural show');
+        }
+        
+        return activities;
+    }
+
+    generateDayTips(destination, activities) {
+        const tips = [];
+        
+        if (activities.some(act => act.includes('adventure'))) {
+            tips.push('Bring comfortable shoes and sunscreen');
+        }
+        if (activities.some(act => act.includes('historical'))) {
+            tips.push('Consider hiring a local guide for historical context');
+        }
+        if (activities.some(act => act.includes('restaurant'))) {
+            tips.push('Try local specialties and regional cuisine');
+        }
+        
+        return tips;
+    }
+
+    generateBudgetEstimate(formData, destinations) {
+        const baseDailyBudget = 150; // USD per day
+        const duration = parseInt(formData.duration);
+        const totalBudget = baseDailyBudget * duration;
+        
+        return {
+            total: totalBudget,
+            daily: baseDailyBudget,
+            breakdown: [
+                { category: 'Accommodation', amount: Math.round(totalBudget * 0.35), percentage: 35 },
+                { category: 'Food & Dining', amount: Math.round(totalBudget * 0.25), percentage: 25 },
+                { category: 'Activities', amount: Math.round(totalBudget * 0.20), percentage: 20 },
+                { category: 'Transportation', amount: Math.round(totalBudget * 0.15), percentage: 15 },
+                { category: 'Miscellaneous', amount: Math.round(totalBudget * 0.05), percentage: 5 }
+            ]
+        };
+    }
+
+    generateTravelTips(destinations) {
+        return [
+            'Pack light, breathable clothing for Brazil\'s tropical climate',
+            'Learn basic Portuguese phrases for better local interaction',
+            'Carry sunscreen and insect repellent',
+            'Try local street food but choose busy, popular vendors',
+            'Keep copies of important documents in separate locations'
+        ];
+    }    generateTravelWarnings(startDate, destinations) {
+        const warnings = [];
+        const month = startDate.getMonth();
+        
+        // Seasonal warnings
+        if (month >= 11 || month <= 2) { // Summer in Brazil
+            warnings.push({
+                type: 'weather',
+                message: 'High temperatures and humidity expected. Stay hydrated and seek shade during peak hours.'
+            });
+        }
+        
+        if (month >= 11 && month <= 3) { // Rainy season
+            warnings.push({
+                type: 'weather',
+                message: 'Rainy season - pack waterproof clothing and plan indoor alternatives.'
+            });
+        }
+        
+        return warnings;
+    }
+
+    generateTravelRecommendations(formData, destinations) {
+        const recommendations = [];
+        
+        // Activity-based recommendations
+        if (formData.activities.includes('Beach')) {
+            recommendations.push({
+                type: 'activity',
+                message: 'Best beaches are often less crowded early morning or late afternoon.'
+            });
+        }
+        
+        if (formData.activities.includes('Historic')) {
+            recommendations.push({
+                type: 'activity',
+                message: 'Many museums offer free admission on specific days - check local schedules.'
+            });
+        }
+        
+        if (formData.activities.includes('Adventure')) {
+            recommendations.push({
+                type: 'activity',
+                message: 'Book adventure tours in advance, especially during peak season.'
+            });
+        }
+        
+        if (formData.activities.includes('Nightlife')) {
+            recommendations.push({
+                type: 'activity',
+                message: 'Brazilian nightlife starts late - dinner is usually after 8 PM.'
+            });
+        }
+        
+        // General recommendations
+        recommendations.push({
+            type: 'general',
+            message: 'Consider purchasing a local SIM card for better connectivity and navigation.'
+        });
+        
+        return recommendations;
     }
 
     createItinerary(formData, recommendedDestinations) {
@@ -1151,17 +1379,17 @@ class BrazilTravelApp {
                 </button>
             </div>
         `;
-    }
-
-    renderAlertsSection(warnings, recommendations) {
-        if (warnings.length === 0 && recommendations.length === 0) return '';
-
-        return `
+    }    renderAlertsSection(warnings, recommendations) {
+        // Ensure arrays exist and have default values
+        const safeWarnings = warnings || [];
+        const safeRecommendations = recommendations || [];
+        
+        if (safeWarnings.length === 0 && safeRecommendations.length === 0) return '';        return `
             <div class="alerts-section mb-4">
-                ${warnings.length > 0 ? `
+                ${safeWarnings.length > 0 ? `
                     <div class="warnings mb-3">
                         <h6 class="text-warning"><i class="fas fa-exclamation-triangle me-2"></i>Travel Warnings</h6>
-                        ${warnings.map(warning => `
+                        ${safeWarnings.map(warning => `
                             <div class="alert alert-warning alert-sm">
                                 <small><strong>${warning.type.toUpperCase()}:</strong> ${warning.message}</small>
                             </div>
@@ -1169,13 +1397,14 @@ class BrazilTravelApp {
                     </div>
                 ` : ''}
                 
-                ${recommendations.length > 0 ? `
+                ${safeRecommendations.length > 0 ? `
                     <div class="recommendations">
                         <h6 class="text-info"><i class="fas fa-lightbulb me-2"></i>Smart Recommendations</h6>
-                        ${recommendations.map(rec => `
+                        ${safeRecommendations.map(rec => `
                             <div class="alert alert-info alert-sm">
-                                <small><span class="me-2">${rec.icon}</span><strong>${rec.title}:</strong> ${rec.message}</small>
-                            </div>                        `).join('')}
+                                <small><strong>${rec.type.toUpperCase()}:</strong> ${rec.message}</small>
+                            </div>
+                        `).join('')}
                     </div>
                 ` : ''}
             </div>

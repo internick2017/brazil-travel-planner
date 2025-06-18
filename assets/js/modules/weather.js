@@ -30,43 +30,35 @@ class WeatherAPI {
      * @param {string} city - City name (e.g., "Rio de Janeiro,Brazil")
      * @param {string} units - 'metric' or 'us' (default: metric)
      * @returns {Promise<Object>} Weather data
+     */    async getCurrentWeather(city, units = 'metric') {
+        // Temporarily disable API calls to prevent rate limiting    async getCurrentWeather(city, units = 'metric') {
+        // Temporarily disable API calls to prevent rate limits
+        console.log('⚠️ Weather API disabled to prevent rate limits. Using fallback data for', city);
+        return this.getFallbackWeatherData(city);
+    }
+
+    /**
+     * Get fallback weather data when API is unavailable
      */
-    async getCurrentWeather(city, units = 'metric') {
-        if (!this.apiKey) {
-            throw new Error('API key not set. Please register and set your API key first.');
-        }
-
-        const cacheKey = `current-${city}-${units}`;
+    getFallbackWeatherData(city) {
+        const fallbackData = {
+            'Rio de Janeiro': { temp: 28, condition: 'Partly cloudy', humidity: 70, windSpeed: 12 },
+            'São Paulo': { temp: 22, condition: 'Cloudy', humidity: 65, windSpeed: 8 },
+            'Brasília': { temp: 26, condition: 'Clear', humidity: 45, windSpeed: 15 },
+            'Salvador': { temp: 29, condition: 'Sunny', humidity: 75, windSpeed: 14 }
+        };
         
-        // Check cache first
-        if (this.isValidCache(cacheKey)) {
-            console.log('🔄 Using cached weather data for', city);
-            return this.cache.get(cacheKey).data;
-        }
-
-        try {
-            const url = `${this.baseURL}/${encodeURIComponent(city)}?unitGroup=${units}&key=${this.apiKey}&include=current`;
-            console.log('🌤️ Fetching current weather for', city);
-            
-            const response = await fetch(url);
-            
-            if (!response.ok) {
-                throw new Error(`Weather API error: ${response.status} ${response.statusText}`);
+        const cityName = city.split(',')[0];
+        const data = fallbackData[cityName] || { temp: 25, condition: 'Clear', humidity: 60, windSpeed: 10 };
+        
+        return {
+            currentConditions: {
+                temp: data.temp,
+                conditions: data.condition,
+                humidity: data.humidity,
+                windspeed: data.windSpeed
             }
-            
-            const data = await response.json();
-            
-            // Cache the result
-            this.cache.set(cacheKey, {
-                data: data,
-                timestamp: Date.now()
-            });
-            
-            return data;
-        } catch (error) {
-            console.error('❌ Error fetching weather data:', error);
-            throw error;
-        }
+        };
     }
 
     /**
